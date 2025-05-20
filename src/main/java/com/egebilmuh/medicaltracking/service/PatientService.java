@@ -6,15 +6,15 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 public class PatientService {
     private final PatientRepository patientRepository;
 
-    public Optional<Patient> getPatient(int patientId) {
-        return patientRepository.findById(patientId);
+    public Patient getPatient(int patientId) {
+        return patientRepository.findById(patientId)
+                .orElseThrow(() -> new RuntimeException("Hasta kaydı bulunamadı"));
     }
 
     public List<Patient> getAllPatients() {
@@ -22,8 +22,7 @@ public class PatientService {
     }
 
     public Patient updatePatient(int id, Patient updatedPatient) {
-        Patient existPatient = getPatient(id)
-                .orElseThrow(() -> new RuntimeException("Hasta bulunamadı: id=" + id));
+        Patient existPatient = getPatient(id);
         if (updatedPatient.getName() != null) {
             existPatient.setName(updatedPatient.getName());
         }

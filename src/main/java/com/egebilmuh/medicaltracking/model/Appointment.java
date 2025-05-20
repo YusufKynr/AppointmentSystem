@@ -19,6 +19,17 @@ public class Appointment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int appointmentId;
 
-    private String specialty;
+    @ManyToOne
+    private Doctor doctor;
+    @ManyToOne
+    private Patient patient;
+
+    public enum AppointmentStatus {
+        PENDING, CONFIRMED, CANCELLED
+    };
+
+    @Enumerated(EnumType.STRING)
+    private AppointmentStatus status;
+
     private LocalDateTime appointmentDateTime;
 }

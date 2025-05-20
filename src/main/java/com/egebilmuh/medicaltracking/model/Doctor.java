@@ -17,6 +17,13 @@ public class Doctor extends User {
     private String address;
     private String phoneNo;
     private String email;
-    private String specialty;
+    private enum Specialty{
+        Dermatology,
+        Cardiology,
+        Eye,
+        General_Surgery
+    };
+    @Enumerated(EnumType.STRING)
+    private Specialty speciality;
     private boolean availability;
 }

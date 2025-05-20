@@ -16,11 +16,9 @@ public class PatientController {
         this.patientService = patientService;
     }
 
-    @GetMapping
+    @GetMapping("/getPatient/{id}")
     public ResponseEntity<Patient> getPatient(@PathVariable int id) {
-        return patientService.getPatient(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        return ResponseEntity.ok(patientService.getPatient(id));
     }
 
     @GetMapping("/getAllPatients")

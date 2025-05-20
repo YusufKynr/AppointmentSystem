@@ -4,42 +4,52 @@ import com.egebilmuh.medicaltracking.model.Appointment;
 import com.egebilmuh.medicaltracking.model.Doctor;
 import com.egebilmuh.medicaltracking.model.Patient;
 import com.egebilmuh.medicaltracking.repository.AppointmentRepository;
-import com.egebilmuh.medicaltracking.repository.DoctorRepository;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 public class AppointmentService {
     private final AppointmentRepository appointmentRepository;
-    private final DoctorRepository doctorRepository;
     private final DoctorService doctorService;
     private final PatientService patientService;
 
-    public Appointment createAppointment(Doctor doctor, Patient patient, LocalDateTime time) {
-        Optional<Doctor> existDoctor = doctorService.getDoctor(doctor.getUserId());
-        Optional<Patient> existPatient = patientService.getPatient(patient.getUserId());
-        if (existDoctor.isEmpty()) {
-            throw new RuntimeException("Doktor bulunamadı");
-        }
-        if (existPatient.isEmpty()){
-            throw new RuntimeException("Hasta bulunamadı");
-        } else if (doctor.isAvailability()) {
-            return null;
+    public Appointment createAppointment(int doctorId, int patientId, LocalDateTime appointmentTime) {
+        Doctor existDoctor = doctorService.getDoctor(doctorId);
+        Patient existPatient = patientService.getPatient(patientId);
+        if (appointmentRepository.existsByDoctorAndAppointmentDateTime(existDoctor, appointmentTime)) {
+            throw new RuntimeException("Doktor bu saatte başka bir randevuya sahip");
         }
 
+        Appointment appointment = new Appointment();
+        appointment.setDoctor(existDoctor);
+        appointment.setPatient(existPatient);
+        appointment.setAppointmentDateTime(appointmentTime);
+        appointment.setStatus(Appointment.AppointmentStatus.CONFIRMED);
 
-        return null;
+        return appointmentRepository.save(appointment);
     }
 
-    public Appointment saveAppointment(Appointment appointment) {
-        if(appointmentRepository.existsById(appointment.getAppointmentId())){
-            throw new IllegalArgumentException("Randevu zaten mevcut: id=" + appointment.getAppointmentId());
+    public List<Appointment> getAppointmentsByPatient(int patientId) {
+        Patient patient = patientService.getPatient(patientId);
+        return appointmentRepository.findByPatient(patient);
+    }
+
+    public List<Appointment> getAppointmentsByDoctor(int doctorId) {
+        Doctor doctor = doctorService.getDoctor(doctorId);
+        return appointmentRepository.findByDoctor(doctor);
+    }
+
+    public void cancelAppointment(int appointmentId){
+        if(!appointmentRepository.existsById(appointmentId)){
+            throw new RuntimeException("Randevu bulunamadı: id=" + appointmentId);
         }
-        return appointmentRepository.save(appointment);
+        appointmentRepository.deleteById(appointmentId);
     }
 
 }

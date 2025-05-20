@@ -13,8 +13,9 @@ import java.util.Optional;
 public class DoctorService {
     private final DoctorRepository doctorRepository;
 
-    public Optional<Doctor> getDoctor(int doctorId) {
-        return doctorRepository.findById(doctorId);
+    public Doctor getDoctor(int doctorId) {
+        return doctorRepository.findById(doctorId)
+                .orElseThrow(() -> new RuntimeException("Doktor bulunumadı"));
     }
 
     public List<Doctor> getAllDoctors(){

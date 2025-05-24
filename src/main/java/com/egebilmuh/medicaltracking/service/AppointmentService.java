@@ -45,6 +45,36 @@ public class AppointmentService {
         return appointmentRepository.findByDoctor(doctor);
     }
 
+    public void approveAppointment(int appointmentID){
+        Appointment appointment = appointmentRepository.findById(appointmentID)
+                .orElseThrow(() -> new RuntimeException("Randevu bulunamadı: id=" + appointmentID));
+        if (appointment.getStatus() != Appointment.AppointmentStatus.PENDING) {
+            throw new RuntimeException("Randevu zaten işlem görmüş");
+        }
+
+        appointment.setStatus(Appointment.AppointmentStatus.CONFIRMED);
+        appointmentRepository.save(appointment);
+    }
+
+    public void rejectAppointment(int appointmentID){
+        Appointment appointment = appointmentRepository.findById(appointmentID)
+                .orElseThrow(() -> new RuntimeException("Randevu bulunamadı: id=" + appointmentID));
+        if (appointment.getStatus() != Appointment.AppointmentStatus.PENDING) {
+            throw new RuntimeException("Randevu zaten işlem görmüş");
+        }
+
+        appointment.setStatus(Appointment.AppointmentStatus.CANCELLED);
+        appointmentRepository.save(appointment);
+    }
+
+    public void setNoteToAppointment(int appointmentID, String doctorNote){
+        Appointment appointment = appointmentRepository.findById(appointmentID)
+                .orElseThrow(() -> new RuntimeException("Randevu bulunamadı: id=" + appointmentID));
+
+        appointment.setDoctorNote(doctorNote);
+        appointmentRepository.save(appointment);
+    }
+
     public void cancelAppointment(int appointmentId){
         if(!appointmentRepository.existsById(appointmentId)){
             throw new RuntimeException("Randevu bulunamadı: id=" + appointmentId);

@@ -18,6 +18,10 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int userId;
 
+    private String email;
     private String password;
-    private String role;
+    public enum Role {
+        PATIENT, DOCTOR
+    }
+    private Role role;
 }

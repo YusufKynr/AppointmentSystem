@@ -3,15 +3,18 @@ package com.egebilmuh.medicaltracking.service;
 import com.egebilmuh.medicaltracking.model.User;
 import com.egebilmuh.medicaltracking.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 public class UserService {
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public Optional<User> getUser(int userId) {
         return userRepository.findById(userId);
@@ -48,5 +51,29 @@ public class UserService {
         userRepository.deleteById(userId);
     }
 
+    public User register(String email, String password, User.Role role) {
+        if (userRepository.existsByEmail(email)) {
+            throw new RuntimeException("Kullanıcı zaten mevcut: email=" + email);
+        }
+
+        String hashedPassword = passwordEncoder.encode(password);
+
+        User newUser = new User();
+        newUser.setEmail(hashedPassword);
+        newUser.setPassword(password);
+        newUser.setRole(role);
+
+        return userRepository.save(newUser);
+    }
+
+    public User login(String email, String password){
+
+        User existUser = userRepository.findUserByEmail(email)
+                .orElseThrow(()-> new RuntimeException("Kullanıcı bulunamadı"));
+        if(!passwordEncoder.matches(password, passwordEncoder.encode(password))){
+            throw new RuntimeException("Şifre yanlış");
+        }
+        return existUser;
+    };
 
 }

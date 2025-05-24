@@ -32,4 +32,7 @@ public class Appointment {
     private AppointmentStatus status;
 
     private LocalDateTime appointmentDateTime;
+
+    private String doctorNote;
+
 }

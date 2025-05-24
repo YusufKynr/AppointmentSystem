@@ -35,8 +35,20 @@ public class UserController {
     }
 
     @PostMapping("/register")
-    public User saveUser(@RequestBody User user) {
-        return userService.saveUser(user);
+    public ResponseEntity<String> register(@RequestBody User user) {
+        try {
+            userService.register(user.getEmail(), user.getPassword(), user.getRole());
+            userService.saveUser(user);
+            return ResponseEntity.ok("Kayıt başarılı");
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(401).body("Giriş başarısız: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<String> login(@RequestBody User user) {
+        userService.login(user.getEmail(), user.getPassword());
+        return ResponseEntity.ok("Giriş başarılı");
     }
 
     @DeleteMapping("/delete/{id}")

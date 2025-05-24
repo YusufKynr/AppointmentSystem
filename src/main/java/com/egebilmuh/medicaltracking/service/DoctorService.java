@@ -1,5 +1,6 @@
 package com.egebilmuh.medicaltracking.service;
 
+import com.egebilmuh.medicaltracking.model.Appointment;
 import com.egebilmuh.medicaltracking.model.Doctor;
 import com.egebilmuh.medicaltracking.repository.DoctorRepository;
 import lombok.RequiredArgsConstructor;

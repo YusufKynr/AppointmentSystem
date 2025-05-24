@@ -42,5 +42,26 @@ public class AppointmentController {
         return ResponseEntity.ok("Randevu iptal edildi");
     }
 
+    @PostMapping("/approve/{id}")
+    public ResponseEntity<String> approveAppointment(@PathVariable int id) {
+        appointmentService.approveAppointment(id);
+        return ResponseEntity.ok("Randevu onaylandı");
+    }
+
+    @PostMapping("/reject/{id}")
+    public ResponseEntity<String> rejectAppointment(@PathVariable int id) {
+        appointmentService.approveAppointment(id);
+        return ResponseEntity.ok("Randevu reddedildi");
+    }
+
+    @PostMapping("/setNote/{id}")
+    public ResponseEntity<String> setNoteAppoinment(@PathVariable int id) {
+        appointmentService.approveAppointment(id);
+        return ResponseEntity.ok("Randevu reddedildi");
+    }
+
+
+
+
 
 }

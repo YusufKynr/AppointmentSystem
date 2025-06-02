@@ -16,18 +16,10 @@ const Register = ({ onRegister, onSwitchToLogin }) => {
   const [error, setError] = useState('');
 
   const specialties = [
-    { value: 'kardiyoloji', label: 'Kardiyoloji' },
-    { value: 'dahiliye', label: 'Dahiliye' },
-    { value: 'goz', label: 'Göz Hastalıkları' },
-    { value: 'ortopedi', label: 'Ortopedi ve Travmatoloji' },
-    { value: 'kbb', label: 'Kulak Burun Boğaz' },
-    { value: 'jinekologi', label: 'Jinekologi ve Obstetrik' },
-    { value: 'uroloji', label: 'Üroloji' },
-    { value: 'noroloji', label: 'Nöroloji' },
-    { value: 'psikiyatri', label: 'Psikiyatri' },
-    { value: 'dermatoloji', label: 'Dermatoloji' },
-    { value: 'genel_cerrahi', label: 'Genel Cerrahi' },
-    { value: 'pediatri', label: 'Pediatri' }
+    { value: 'Dermatology', label: 'Dermatoloji' },
+    { value: 'Cardiology', label: 'Kardiyoloji' },
+    { value: 'Eye', label: 'Göz Hastalıkları' },
+    { value: 'General_Surgery', label: 'Genel Cerrahi' }
   ];
 
   const handleSubmit = async (e) => {

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './DoctorDashboard.css';
 
 const DoctorDashboard = ({ user, onLogout }) => {
-  const [activeTab, setActiveTab] = useState('pending');
+  const [activeTab, setActiveTab] = useState('PENDING');
   const [appointments, setAppointments] = useState([]);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [doctorNotes, setDoctorNotes] = useState('');
@@ -59,7 +59,7 @@ const DoctorDashboard = ({ user, onLogout }) => {
       }
 
       setDoctorNotes('');
-      alert(`Randevu ${action === 'onaylandı' ? 'onaylandı' : 'reddedildi'}`);
+      alert(`Randevu ${action === 'CONFIRMED' ? 'onaylandı' : 'iptal edildi'}`);
     } catch (error) {
       alert('İşlem sırasında hata oluştu.');
     } finally {
@@ -73,16 +73,16 @@ const DoctorDashboard = ({ user, onLogout }) => {
 
   const getStatusClass = (status) => {
     switch (status) {
-      case 'onaylandı': return 'status-approved';
-      case 'reddedildi': return 'status-rejected';
+      case 'CONFIRMED': return 'status-approved';
+      case 'CANCELLED': return 'status-rejected';
       default: return 'status-pending';
     }
   };
 
   const getStatusText = (status) => {
     switch (status) {
-      case 'onaylandı': return 'Onaylandı';
-      case 'reddedildi': return 'Reddedildi';
+      case 'CONFIRMED': return 'Onaylandı';
+      case 'CANCELLED': return 'İptal Edildi';
       default: return 'Beklemede';
     }
   };
@@ -107,16 +107,16 @@ const DoctorDashboard = ({ user, onLogout }) => {
 
       <div className="dashboard-stats">
         <div className="stat-card medical-card">
-          <h3>{filterAppointments('beklemede').length}</h3>
+          <h3>{filterAppointments('PENDING').length}</h3>
           <p>Bekleyen Randevular</p>
         </div>
         <div className="stat-card medical-card">
-          <h3>{filterAppointments('onaylandı').length}</h3>
+          <h3>{filterAppointments('CONFIRMED').length}</h3>
           <p>Onaylanan Randevular</p>
         </div>
         <div className="stat-card medical-card">
-          <h3>{filterAppointments('reddedildi').length}</h3>
-          <p>Reddedilen Randevular</p>
+          <h3>{filterAppointments('CANCELLED').length}</h3>
+          <p>İptal Edilen Randevular</p>
         </div>
         <div className="stat-card medical-card">
           <h3>{appointments.length}</h3>
@@ -126,38 +126,38 @@ const DoctorDashboard = ({ user, onLogout }) => {
 
       <div className="dashboard-tabs">
         <button 
-          className={`tab ${activeTab === 'pending' ? 'active' : ''}`}
-          onClick={() => setActiveTab('pending')}
+          className={`tab ${activeTab === 'PENDING' ? 'active' : ''}`}
+          onClick={() => setActiveTab('PENDING')}
         >
-          Bekleyen ({filterAppointments('beklemede').length})
+          Bekleyen ({filterAppointments('PENDING').length})
         </button>
         <button 
-          className={`tab ${activeTab === 'approved' ? 'active' : ''}`}
-          onClick={() => setActiveTab('approved')}
+          className={`tab ${activeTab === 'CONFIRMED' ? 'active' : ''}`}
+          onClick={() => setActiveTab('CONFIRMED')}
         >
-          Onaylanan ({filterAppointments('onaylandı').length})
+          Onaylanan ({filterAppointments('CONFIRMED').length})
         </button>
         <button 
-          className={`tab ${activeTab === 'rejected' ? 'active' : ''}`}
-          onClick={() => setActiveTab('rejected')}
+          className={`tab ${activeTab === 'CANCELLED' ? 'active' : ''}`}
+          onClick={() => setActiveTab('CANCELLED')}
         >
-          Reddedilen ({filterAppointments('reddedildi').length})
+          İptal Edilen ({filterAppointments('CANCELLED').length})
         </button>
       </div>
 
       <div className="dashboard-content">
         <div className="appointments-list">
-          {activeTab === 'pending' && (
+          {activeTab === 'PENDING' && (
             <div className="appointments-section">
               <h3>Onay Bekleyen Randevular</h3>
-              {filterAppointments('beklemede').length === 0 ? (
+              {filterAppointments('PENDING').length === 0 ? (
                 <div className="empty-state">
                   <p>Bekleyen randevu bulunmuyor.</p>
                   <p>Hastalar yeni randevu talep ettiğinde burada görünecek.</p>
                 </div>
               ) : (
                 <div className="appointments-grid">
-                  {filterAppointments('beklemede').map(appointment => (
+                  {filterAppointments('PENDING').map(appointment => (
                     <div key={appointment.id} className={`appointment-card medical-card ${getStatusClass(appointment.status)}`}>
                       <div className="appointment-header">
                         <h4>{appointment.patientName}</h4>
@@ -182,18 +182,18 @@ const DoctorDashboard = ({ user, onLogout }) => {
                           Detay
                         </button>
                         <button 
-                          onClick={() => handleAppointmentAction(appointment.id, 'onaylandı')}
+                          onClick={() => handleAppointmentAction(appointment.id, 'CONFIRMED')}
                           className="approve-btn btn btn-success"
                           disabled={loading}
                         >
                           Onayla
                         </button>
                         <button 
-                          onClick={() => handleAppointmentAction(appointment.id, 'reddedildi')}
+                          onClick={() => handleAppointmentAction(appointment.id, 'CANCELLED')}
                           className="reject-btn btn btn-danger"
                           disabled={loading}
                         >
-                          Reddet
+                          İptal
                         </button>
                       </div>
                     </div>
@@ -203,16 +203,16 @@ const DoctorDashboard = ({ user, onLogout }) => {
             </div>
           )}
 
-          {activeTab === 'approved' && (
+          {activeTab === 'CONFIRMED' && (
             <div className="appointments-section">
               <h3>Onaylanan Randevular</h3>
-              {filterAppointments('onaylandı').length === 0 ? (
+              {filterAppointments('CONFIRMED').length === 0 ? (
                 <div className="empty-state">
                   <p>Onaylanan randevu bulunmuyor.</p>
                 </div>
               ) : (
                 <div className="appointments-grid">
-                  {filterAppointments('onaylandı').map(appointment => (
+                  {filterAppointments('CONFIRMED').map(appointment => (
                     <div key={appointment.id} className={`appointment-card medical-card ${getStatusClass(appointment.status)}`}>
                       <div className="appointment-header">
                         <h4>{appointment.patientName}</h4>
@@ -246,16 +246,16 @@ const DoctorDashboard = ({ user, onLogout }) => {
             </div>
           )}
 
-          {activeTab === 'rejected' && (
+          {activeTab === 'CANCELLED' && (
             <div className="appointments-section">
-              <h3>Reddedilen Randevular</h3>
-              {filterAppointments('reddedildi').length === 0 ? (
+              <h3>İptal Edilen Randevular</h3>
+              {filterAppointments('CANCELLED').length === 0 ? (
                 <div className="empty-state">
-                  <p>Reddedilen randevu bulunmuyor.</p>
+                  <p>İptal edilen randevu bulunmuyor.</p>
                 </div>
               ) : (
                 <div className="appointments-grid">
-                  {filterAppointments('reddedildi').map(appointment => (
+                  {filterAppointments('CANCELLED').map(appointment => (
                     <div key={appointment.id} className={`appointment-card medical-card ${getStatusClass(appointment.status)}`}>
                       <div className="appointment-header">
                         <h4>{appointment.patientName}</h4>
@@ -268,7 +268,7 @@ const DoctorDashboard = ({ user, onLogout }) => {
                         <p><strong>Saat:</strong> {appointment.time}</p>
                         {appointment.doctorNotes && (
                           <div className="doctor-notes-preview">
-                            <strong>Red Sebebi:</strong>
+                            <strong>İptal Sebebi:</strong>
                             <p>{appointment.doctorNotes}</p>
                           </div>
                         )}
@@ -322,27 +322,27 @@ const DoctorDashboard = ({ user, onLogout }) => {
               </div>
             </div>
             <div className="modal-actions">
-              {selectedAppointment.status === 'beklemede' && (
+              {selectedAppointment.status === 'PENDING' && (
                 <>
                   <button 
-                    onClick={() => handleAppointmentAction(selectedAppointment.id, 'onaylandı', doctorNotes)}
+                    onClick={() => handleAppointmentAction(selectedAppointment.id, 'CONFIRMED', doctorNotes)}
                     className="approve-btn btn btn-success"
                     disabled={loading}
                   >
                     Onayla ve Not Kaydet
                   </button>
                   <button 
-                    onClick={() => handleAppointmentAction(selectedAppointment.id, 'reddedildi', doctorNotes)}
+                    onClick={() => handleAppointmentAction(selectedAppointment.id, 'CANCELLED', doctorNotes)}
                     className="reject-btn btn btn-danger"
                     disabled={loading}
                   >
-                    Reddet ve Not Kaydet
+                    İptal ve Not Kaydet
                   </button>
                 </>
               )}
-              {selectedAppointment.status === 'onaylandı' && (
+              {selectedAppointment.status === 'CONFIRMED' && (
                 <button 
-                  onClick={() => handleAppointmentAction(selectedAppointment.id, 'onaylandı', doctorNotes)}
+                  onClick={() => handleAppointmentAction(selectedAppointment.id, 'CONFIRMED', doctorNotes)}
                   className="save-btn btn btn-primary"
                   disabled={loading}
                 >

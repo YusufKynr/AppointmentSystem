@@ -172,4 +172,137 @@ const PatientDashboard = ({ user, onLogout }) => {
                   <div key={appointment.id} className={`appointment-card medical-card ${getStatusClass(appointment.status)}`}>
                     <div className="appointment-header">
                       <h4>{appointment.doctorName}</h4>
-                      <span className={`
+                      <span className={`status-badge ${getStatusClass(appointment.status)}`}>
+                        {getStatusText(appointment.status)}
+                      </span>
+                    </div>
+                    <div className="appointment-details">
+                      <p><strong>Bölüm:</strong> {appointment.specialty}</p>
+                      <p><strong>Tarih:</strong> {new Date(appointment.date).toLocaleDateString('tr-TR')}</p>
+                      <p><strong>Saat:</strong> {appointment.time}</p>
+                      {appointment.notes && (
+                        <p><strong>Randevu Notları:</strong> {appointment.notes}</p>
+                      )}
+                      {appointment.doctorNotes && (
+                        <div className="doctor-notes">
+                          <strong>Doktor Notları:</strong>
+                          <p>{appointment.doctorNotes}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'new-appointment' && (
+          <div className="new-appointment">
+            <h3>Yeni Randevu Talebi</h3>
+            <form onSubmit={handleAppointmentSubmit} className="appointment-form">
+              <div className="form-group">
+                <label htmlFor="specialty">Poliklinik Seçimi</label>
+                <select
+                  id="specialty"
+                  value={appointmentForm.specialty}
+                  onChange={(e) => setAppointmentForm({...appointmentForm, specialty: e.target.value})}
+                  required
+                >
+                  <option value="">Poliklinik seçiniz...</option>
+                  {specialties.map(specialty => (
+                    <option key={specialty.value} value={specialty.value}>
+                      {specialty.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {appointmentForm.specialty && (
+                <div className="form-group">
+                  <label htmlFor="doctorId">Doktor Seçimi</label>
+                  {filteredDoctors.length === 0 ? (
+                    <div className="no-doctors-warning">
+                      <p>Seçilen poliklinik için şu anda müsait doktor bulunmuyor.</p>
+                      <p>Lütfen başka bir poliklinik seçiniz veya daha sonra tekrar deneyiniz.</p>
+                    </div>
+                  ) : (
+                    <select
+                      id="doctorId"
+                      value={appointmentForm.doctorId}
+                      onChange={(e) => setAppointmentForm({...appointmentForm, doctorId: e.target.value})}
+                      required
+                    >
+                      <option value="">Doktor seçiniz...</option>
+                      {filteredDoctors.map(doctor => (
+                        <option key={doctor.id} value={doctor.id}>
+                          {doctor.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              )}
+
+              {appointmentForm.doctorId && (
+                <>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label htmlFor="date">Randevu Tarihi</label>
+                      <input
+                        type="date"
+                        id="date"
+                        value={appointmentForm.date}
+                        onChange={(e) => setAppointmentForm({...appointmentForm, date: e.target.value})}
+                        min={new Date().toISOString().split('T')[0]}
+                        required
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="time">Randevu Saati</label>
+                      <select
+                        id="time"
+                        value={appointmentForm.time}
+                        onChange={(e) => setAppointmentForm({...appointmentForm, time: e.target.value})}
+                        required
+                      >
+                        <option value="">Saat seçiniz...</option>
+                        <option value="09:00">09:00</option>
+                        <option value="10:00">10:00</option>
+                        <option value="11:00">11:00</option>
+                        <option value="14:00">14:00</option>
+                        <option value="15:00">15:00</option>
+                        <option value="16:00">16:00</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="notes">Ek Notlar (Opsiyonel)</label>
+                    <textarea
+                      id="notes"
+                      value={appointmentForm.notes}
+                      onChange={(e) => setAppointmentForm({...appointmentForm, notes: e.target.value})}
+                      placeholder="Randevu ile ilgili özel notlarınızı yazabilirsiniz..."
+                      rows="3"
+                    />
+                  </div>
+
+                  <button 
+                    type="submit" 
+                    className="submit-btn btn btn-primary"
+                    disabled={loading}
+                  >
+                    {loading ? 'Randevu oluşturuluyor...' : 'Randevu Talep Et'}
+                  </button>
+                </>
+              )}
+            </form>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default PatientDashboard;

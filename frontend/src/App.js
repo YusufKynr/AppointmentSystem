@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './App.css';
 import Login from './components/Login';
 import PatientDashboard from './components/PatientDashboard';
@@ -9,14 +9,42 @@ function App() {
   const [user, setUser] = useState(null);
   const [currentView, setCurrentView] = useState('login');
 
+  // Sayfa yüklendiğinde localStorage'dan kullanıcı bilgilerini kontrol et
+  useEffect(() => {
+    const savedUser = localStorage.getItem('currentUser');
+    const savedView = localStorage.getItem('currentView');
+    
+    if (savedUser && savedView) {
+      try {
+        const parsedUser = JSON.parse(savedUser);
+        setUser(parsedUser);
+        setCurrentView(savedView);
+      } catch (error) {
+        console.error('Kullanıcı bilgileri okunurken hata:', error);
+        // Hatalı veri varsa temizle
+        localStorage.removeItem('currentUser');
+        localStorage.removeItem('currentView');
+      }
+    }
+  }, []);
+
   const handleLogin = (userData) => {
     setUser(userData);
-    setCurrentView(userData.role === 'hasta' ? 'patient' : 'doctor');
+    const viewType = userData.role === 'hasta' ? 'patient' : 'doctor';
+    setCurrentView(viewType);
+    
+    // Kullanıcı bilgilerini localStorage'a kaydet
+    localStorage.setItem('currentUser', JSON.stringify(userData));
+    localStorage.setItem('currentView', viewType);
   };
 
   const handleLogout = () => {
     setUser(null);
     setCurrentView('login');
+    
+    // localStorage'dan kullanıcı bilgilerini temizle
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('currentView');
   };
 
   const renderCurrentView = () => {

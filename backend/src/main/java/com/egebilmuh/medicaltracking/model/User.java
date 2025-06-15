@@ -23,5 +23,6 @@ public class User {
     public enum Role {
         PATIENT, DOCTOR
     }
+    @Enumerated(EnumType.STRING)
     private Role role;
 }

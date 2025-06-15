@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { userAPI } from '../services/api';
 import './Login.css';
 
 const Login = ({ onLogin, onSwitchToRegister }) => {
@@ -16,20 +15,10 @@ const Login = ({ onLogin, onSwitchToRegister }) => {
     setError('');
 
     try {
-      // Database'den kullanıcı girişi
-      const user = await userAPI.login(formData.email, formData.password);
-      
-      // Role mapping (backend PATIENT/DOCTOR olarak geliyor)
-      const mappedUser = {
-        ...user,
-        id: user.userId,
-        name: user.email.split('@')[0], // Email'den geçici isim
-        role: user.role === 'PATIENT' ? 'hasta' : 'doktor'
-      };
-      
-      onLogin(mappedUser);
+      // App.js'deki handleLogin fonksiyonunu çağır (session API kullanacak)
+      await onLogin(formData);
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Giriş başarısız. E-posta veya şifre hatalı.');
     } finally {
       setLoading(false);
     }
@@ -44,24 +33,25 @@ const Login = ({ onLogin, onSwitchToRegister }) => {
 
   return (
     <div className="login-container">
-      <div className="login-card medical-card">
-        {/* Sol Kolon - Form */}
+      <div className="login-card">
         <div className="login-left">
           <div className="login-header">
-            <h2>Sistem Girişi</h2>
-            <p>MediSys Hastane Yönetim Sistemi</p>
+            <h2>Giriş Yap</h2>
+            <p>Hesabınıza güvenli giriş yapın</p>
           </div>
+
+          {error && <div className="error-message">{error}</div>}
 
           <form onSubmit={handleSubmit} className="login-form">
             <div className="form-group">
-              <label htmlFor="email">E-posta Adresi</label>
+              <label htmlFor="email">E-posta</label>
               <input
                 type="email"
                 id="email"
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
-                placeholder="kullanici@hastane.com"
+                placeholder="E-posta adresinizi girin"
                 required
               />
             </div>
@@ -79,41 +69,38 @@ const Login = ({ onLogin, onSwitchToRegister }) => {
               />
             </div>
 
-            {error && <div className="error-message">{error}</div>}
-
             <button 
               type="submit" 
-              className="login-btn btn btn-primary"
+              className="btn btn-primary login-btn"
               disabled={loading}
             >
-              {loading ? 'Giriş yapılıyor...' : 'Güvenli Giriş'}
+              {loading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
             </button>
           </form>
 
           <div className="login-footer">
-            <p>Hesabınız yok mu?</p>
-            <button 
-              onClick={onSwitchToRegister}
-              className="switch-btn"
-            >
-              Yeni Hesap Oluştur
-            </button>
+            <p>
+              Hesabınız yok mu?{' '}
+              <button 
+                onClick={onSwitchToRegister}
+                className="link-btn"
+              >
+                Kayıt Ol
+              </button>
+            </p>
           </div>
         </div>
 
-        {/* Sağ Kolon - Logo ve Bilgiler */}
         <div className="login-right">
           <div className="right-content">
             <div className="medical-logo">⚕</div>
-            <h3>MediSys</h3>
-            <p>Modern hastane yönetim sistemi ile sağlık hizmetlerinizi dijitalleştirin</p>
-            
+            <h3>MediSys'e Hoş Geldiniz</h3>
+            <p>Modern hastane yönetim sistemi ile sağlık hizmetlerinizi dijitalleştirin.</p>
             <ul className="features-list">
-              <li>Randevu yönetimi</li>
-              <li>Hasta takip sistemi</li>
-              <li>Doktor paneli</li>
-              <li>Güvenli veri saklama</li>
-              <li>Mobil uyumlu tasarım</li>
+              <li>✅ Güvenli randevu sistemi</li>
+              <li>✅ Hasta takip sistemi</li>
+              <li>✅ Doktor yönetimi</li>
+              <li>✅ 7/24 erişim</li>
             </ul>
           </div>
         </div>

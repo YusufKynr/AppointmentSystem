@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { userAPI } from '../services/api';
+import { userAPI, appointmentAPI } from '../services/api';
 import './PatientDashboard.css';
 
 const PatientDashboard = ({ user, onLogout }) => {
@@ -24,12 +24,14 @@ const PatientDashboard = ({ user, onLogout }) => {
     { value: 'General_Surgery', label: 'Genel Cerrahi' }
   ];
 
-  // Kullanıcı bazlı verileri database'den yükle
+  // Database'den doktorları ve randevuları yükle
   useEffect(() => {
-    const loadDoctors = async () => {
+    const loadData = async () => {
       try {
         setLoading(true);
-        // Database'den tüm doktorları getir
+        setError('');
+        
+        // Doktorları database'den getir
         const doctors = await userAPI.getAllDoctors();
         
         // Frontend için doktor bilgilerini düzenle
@@ -38,33 +40,43 @@ const PatientDashboard = ({ user, onLogout }) => {
           name: `${doctor.name} ${doctor.surname}`,
           email: doctor.email,
           role: 'doktor',
-          specialty: doctor.specialty, // Database'den gelen gerçek specialty
+          specialty: doctor.specialty,
           availability: doctor.availability,
           birthDate: doctor.birthDate,
           phoneNo: doctor.phoneNo
         }));
         
         setAvailableDoctors(mappedDoctors);
+
+        // Hasta randevularını database'den getir
+        const patientAppointments = await appointmentAPI.getPatientAppointments(user.id);
         
-        // Kullanıcıya özel randevuları localStorage'dan yükle (geçici olarak)
-        // TODO: İleride randevu API'si eklendiğinde burası da database'den gelecek
-    const userAppointmentsKey = `appointments_patient_${user.id}`;
-    const savedAppointments = localStorage.getItem(userAppointmentsKey);
-    
-    if (savedAppointments) {
-      setAppointments(JSON.parse(savedAppointments));
-    } else {
-      setAppointments([]);
-    }
+        // Frontend için randevu bilgilerini düzenle
+        const mappedAppointments = patientAppointments.map(appointment => ({
+          id: appointment.appointmentId,
+          patientId: appointment.patient.userId,
+          patientName: `${appointment.patient.name} ${appointment.patient.surname}`,
+          doctorId: appointment.doctor.userId,
+          doctorName: `${appointment.doctor.name} ${appointment.doctor.surname}`,
+          specialty: appointment.doctor.specialty,
+          date: appointment.appointmentDateTime.split('T')[0], // LocalDateTime'den tarih
+          time: appointment.appointmentDateTime.split('T')[1].substring(0, 5), // LocalDateTime'den saat
+          notes: appointment.doctorNote || '',
+          status: appointment.status,
+          createdAt: appointment.appointmentDateTime
+        }));
+        
+        setAppointments(mappedAppointments);
+        
       } catch (error) {
-        setError('Doktor listesi yüklenirken hata oluştu: ' + error.message);
-        console.error('Doktor yükleme hatası:', error);
+        setError('Veriler yüklenirken hata oluştu: ' + error.message);
+        console.error('Data yükleme hatası:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    loadDoctors();
+    loadData();
   }, [user.id]);
 
   // Uzmanlık alanı seçildiğinde doktorları filtrele
@@ -79,47 +91,44 @@ const PatientDashboard = ({ user, onLogout }) => {
     setAppointmentForm(prev => ({ ...prev, doctorId: '' }));
   }, [appointmentForm.specialty, availableDoctors]);
 
-  // Randevuları localStorage'a kaydet (geçici - ileride database'e kaydedilecek)
-  const saveAppointments = (newAppointments) => {
-    const userAppointmentsKey = `appointments_patient_${user.id}`;
-    localStorage.setItem(userAppointmentsKey, JSON.stringify(newAppointments));
-    setAppointments(newAppointments);
-  };
-
   const handleAppointmentSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
 
     try {
       if (!appointmentForm.specialty || !appointmentForm.doctorId || !appointmentForm.date || !appointmentForm.time) {
         throw new Error('Lütfen tüm alanları doldurun');
       }
       
-      const selectedDoctor = availableDoctors.find(doc => doc.id.toString() === appointmentForm.doctorId);
+      // LocalDateTime formatında birleştir
+      const appointmentDateTime = `${appointmentForm.date}T${appointmentForm.time}:00`;
       
-      const newAppointment = {
-        id: Date.now(),
-        patientId: user.id,
-        patientName: user.name,
-        doctorId: parseInt(appointmentForm.doctorId),
-        doctorName: selectedDoctor?.name || 'Bilinmeyen Doktor',
-        specialty: appointmentForm.specialty,
-        date: appointmentForm.date,
-        time: appointmentForm.time,
-        notes: appointmentForm.notes,
-        status: 'PENDING',
-        createdAt: new Date().toISOString()
-      };
+      // Database'e randevu oluştur
+      const newAppointment = await appointmentAPI.createAppointment(
+        appointmentForm.doctorId,
+        user.id,
+        appointmentDateTime,
+        appointmentForm.notes
+      );
 
-      // Randevuyu hasta listesine ekle
-      const updatedAppointments = [...appointments, newAppointment];
-      saveAppointments(updatedAppointments);
-
-      // Doktor tarafına da randevuyu ekle (geçici localStorage)
-      const doctorAppointmentsKey = `appointments_doctor_${appointmentForm.doctorId}`;
-      const doctorAppointments = JSON.parse(localStorage.getItem(doctorAppointmentsKey) || '[]');
-      doctorAppointments.push(newAppointment);
-      localStorage.setItem(doctorAppointmentsKey, JSON.stringify(doctorAppointments));
+      // Randevu listesini yenile
+      const patientAppointments = await appointmentAPI.getPatientAppointments(user.id);
+      const mappedAppointments = patientAppointments.map(appointment => ({
+        id: appointment.appointmentId,
+        patientId: appointment.patient.userId,
+        patientName: `${appointment.patient.name} ${appointment.patient.surname}`,
+        doctorId: appointment.doctor.userId,
+        doctorName: `${appointment.doctor.name} ${appointment.doctor.surname}`,
+        specialty: appointment.doctor.specialty,
+        date: appointment.appointmentDateTime.split('T')[0],
+        time: appointment.appointmentDateTime.split('T')[1].substring(0, 5),
+        notes: appointment.doctorNote || '',
+        status: appointment.status,
+        createdAt: appointment.appointmentDateTime
+      }));
+      
+      setAppointments(mappedAppointments);
 
       // Formu sıfırla
       setAppointmentForm({
@@ -135,6 +144,8 @@ const PatientDashboard = ({ user, onLogout }) => {
 
     } catch (error) {
       setError(error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -146,11 +157,44 @@ const PatientDashboard = ({ user, onLogout }) => {
     }));
   };
 
+  const cancelAppointment = async (appointmentId) => {
+    if (!window.confirm('Randevuyu iptal etmek istediğinizden emin misiniz?')) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await appointmentAPI.cancelAppointment(appointmentId);
+      
+      // Randevu listesini yenile
+      const patientAppointments = await appointmentAPI.getPatientAppointments(user.id);
+      const mappedAppointments = patientAppointments.map(appointment => ({
+        id: appointment.appointmentId,
+        patientId: appointment.patient.userId,
+        patientName: `${appointment.patient.name} ${appointment.patient.surname}`,
+        doctorId: appointment.doctor.userId,
+        doctorName: `${appointment.doctor.name} ${appointment.doctor.surname}`,
+        specialty: appointment.doctor.specialty,
+        date: appointment.appointmentDateTime.split('T')[0],
+        time: appointment.appointmentDateTime.split('T')[1].substring(0, 5),
+        notes: appointment.doctorNote || '',
+        status: appointment.status,
+        createdAt: appointment.appointmentDateTime
+      }));
+      
+      setAppointments(mappedAppointments);
+      alert('Randevu başarıyla iptal edildi.');
+    } catch (error) {
+      setError('Randevu iptal edilirken hata oluştu: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getStatusText = (status) => {
     const statusMap = {
       'PENDING': 'Beklemede',
       'CONFIRMED': 'Onaylandı',
-      'COMPLETED': 'Tamamlandı',
       'CANCELLED': 'İptal Edildi'
     };
     return statusMap[status] || status;
@@ -192,146 +236,146 @@ const PatientDashboard = ({ user, onLogout }) => {
               <p><strong>Saat:</strong> {appointment.time}</p>
               {appointment.notes && <p><strong>Notlar:</strong> {appointment.notes}</p>}
             </div>
+            {appointment.status === 'PENDING' && (
+              <div className="appointment-actions">
+                <button 
+                  onClick={() => cancelAppointment(appointment.id)}
+                  className="btn btn-danger"
+                  disabled={loading}
+                >
+                  İptal Et
+                </button>
+              </div>
+            )}
           </div>
         ))}
       </div>
     );
   };
 
-  const renderNewAppointment = () => {
-    return (
-      <div className="new-appointment-form medical-card">
-        <h3>Yeni Randevu Oluştur</h3>
-        
-        {error && <div className="error-message">{error}</div>}
-        
-        <form onSubmit={handleAppointmentSubmit}>
+  const renderNewAppointment = () => (
+    <div className="new-appointment-section">
+      <h3>Yeni Randevu Oluştur</h3>
+      {error && <div className="error-message">{error}</div>}
+      
+      <form onSubmit={handleAppointmentSubmit} className="appointment-form">
+        <div className="form-group">
+          <label htmlFor="specialty">Uzmanlık Alanı</label>
+          <select
+            id="specialty"
+            name="specialty"
+            value={appointmentForm.specialty}
+            onChange={handleFormChange}
+            required
+          >
+            <option value="">Uzmanlık alanı seçin</option>
+            {specialties.map(specialty => (
+              <option key={specialty.value} value={specialty.value}>
+                {specialty.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {appointmentForm.specialty && (
           <div className="form-group">
-            <label htmlFor="specialty">Uzmanlık Alanı</label>
+            <label htmlFor="doctorId">Doktor</label>
             <select
-              id="specialty"
-              name="specialty"
-              value={appointmentForm.specialty}
+              id="doctorId"
+              name="doctorId"
+              value={appointmentForm.doctorId}
               onChange={handleFormChange}
               required
             >
-              <option value="">Uzmanlık alanı seçiniz...</option>
-              {specialties.map(specialty => (
-                <option key={specialty.value} value={specialty.value}>
-                  {specialty.label}
+              <option value="">Doktor seçin</option>
+              {filteredDoctors.map(doctor => (
+                <option key={doctor.id} value={doctor.id}>
+                  Dr. {doctor.name}
                 </option>
               ))}
             </select>
           </div>
+        )}
 
-          {appointmentForm.specialty && (
-            <div className="form-group">
-              <label htmlFor="doctorId">Doktor</label>
-              <select
-                id="doctorId"
-                name="doctorId"
-                value={appointmentForm.doctorId}
-                onChange={handleFormChange}
-                required
-              >
-                <option value="">Doktor seçiniz...</option>
-                {filteredDoctors.map(doctor => (
-                  <option key={doctor.id} value={doctor.id}>
-                    Dr. {doctor.name}
-                    {doctor.availability ? ' ✅' : ' ❌'}
-                  </option>
-                ))}
-              </select>
-              {filteredDoctors.length === 0 && appointmentForm.specialty && (
-                <p className="no-doctors-info">Bu uzmanlık alanında müsait doktor bulunmuyor.</p>
-              )}
-            </div>
-          )}
-
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="date">Tarih</label>
-              <input
-                type="date"
-                id="date"
-                name="date"
-                value={appointmentForm.date}
-                onChange={handleFormChange}
-                min={new Date().toISOString().split('T')[0]}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="time">Saat</label>
-              <select
-                id="time"
-                name="time"
-                value={appointmentForm.time}
-                onChange={handleFormChange}
-                required
-              >
-                <option value="">Saat seçiniz...</option>
-                <option value="09:00">09:00</option>
-                <option value="09:30">09:30</option>
-                <option value="10:00">10:00</option>
-                <option value="10:30">10:30</option>
-                <option value="11:00">11:00</option>
-                <option value="11:30">11:30</option>
-                <option value="14:00">14:00</option>
-                <option value="14:30">14:30</option>
-                <option value="15:00">15:00</option>
-                <option value="15:30">15:30</option>
-                <option value="16:00">16:00</option>
-                <option value="16:30">16:30</option>
-              </select>
-            </div>
-          </div>
-
+        <div className="form-row">
           <div className="form-group">
-            <label htmlFor="notes">Notlar (Opsiyonel)</label>
-            <textarea
-              id="notes"
-              name="notes"
-              value={appointmentForm.notes}
+            <label htmlFor="date">Tarih</label>
+            <input
+              type="date"
+              id="date"
+              name="date"
+              value={appointmentForm.date}
               onChange={handleFormChange}
-              placeholder="Randevu ile ilgili notlarınızı girebilirsiniz..."
-              rows="3"
+              min={new Date().toISOString().split('T')[0]}
+              required
             />
           </div>
+          <div className="form-group">
+            <label htmlFor="time">Saat</label>
+            <input
+              type="time"
+              id="time"
+              name="time"
+              value={appointmentForm.time}
+              onChange={handleFormChange}
+              required
+            />
+          </div>
+        </div>
 
-          <button type="submit" className="btn btn-primary" disabled={loading}>
+        <div className="form-group">
+          <label htmlFor="notes">Notlar (Opsiyonel)</label>
+          <textarea
+            id="notes"
+            name="notes"
+            value={appointmentForm.notes}
+            onChange={handleFormChange}
+            placeholder="Randevu ile ilgili notlarınızı yazın..."
+            rows={3}
+          />
+        </div>
+
+        <div className="form-actions">
+          <button 
+            type="submit" 
+            className="btn btn-primary"
+            disabled={loading}
+          >
             {loading ? 'Randevu Oluşturuluyor...' : 'Randevu Oluştur'}
           </button>
-        </form>
-      </div>
-    );
-  };
-
-  if (loading) {
-    return (
-      <div className="patient-dashboard">
-        <div className="loading-message">Veriler yükleniyor...</div>
-      </div>
-    );
-  }
+          <button 
+            type="button" 
+            onClick={() => setActiveTab('appointments')}
+            className="btn btn-secondary"
+          >
+            İptal
+          </button>
+        </div>
+      </form>
+    </div>
+  );
 
   return (
     <div className="patient-dashboard">
-      <div className="dashboard-header medical-card">
+      <div className="dashboard-header">
         <h2>Hasta Paneli</h2>
-        <p>Hoş geldiniz, <strong>{user.name}</strong></p>
-        <div className="patient-id">Hasta ID: #{user.id}</div>
+        <div className="user-info">
+          <span>Hoş geldin, {user.name}!</span>
+          <button onClick={onLogout} className="btn btn-logout">
+            Çıkış Yap
+          </button>
+        </div>
       </div>
 
-      <div className="dashboard-tabs">
-        <button 
-          className={`tab ${activeTab === 'appointments' ? 'active' : ''}`}
+      <div className="dashboard-nav">
+        <button
+          className={`nav-btn ${activeTab === 'appointments' ? 'active' : ''}`}
           onClick={() => setActiveTab('appointments')}
         >
-          Randevu Geçmişi ({appointments.length})
+          Randevularım
         </button>
-        <button 
-          className={`tab ${activeTab === 'new-appointment' ? 'active' : ''}`}
+        <button
+          className={`nav-btn ${activeTab === 'new-appointment' ? 'active' : ''}`}
           onClick={() => setActiveTab('new-appointment')}
         >
           Yeni Randevu
@@ -339,6 +383,7 @@ const PatientDashboard = ({ user, onLogout }) => {
       </div>
 
       <div className="dashboard-content">
+        {loading && <div className="loading">Yükleniyor...</div>}
         {activeTab === 'appointments' && renderAppointments()}
         {activeTab === 'new-appointment' && renderNewAppointment()}
       </div>

@@ -20,9 +20,61 @@ apiClient.interceptors.response.use(
   }
 );
 
+// Session Management API'leri
+export const sessionAPI = {
+  // Database tabanlı giriş
+  login: async (email, password) => {
+    try {
+      const response = await apiClient.post('/session/login', {
+        email,
+        password
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error('Giriş başarısız. E-posta veya şifre hatalı.');
+    }
+  },
+
+  // Session doğrulama
+  validateSession: async (sessionToken) => {
+    try {
+      const response = await apiClient.post('/session/validate', {
+        sessionToken
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error('Session doğrulanamadı.');
+    }
+  },
+
+  // Çıkış yapma
+  logout: async (sessionToken) => {
+    try {
+      const response = await apiClient.post('/session/logout', {
+        sessionToken
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error('Çıkış işlemi başarısız.');
+    }
+  },
+
+  // Session yenileme
+  refreshSession: async (sessionToken) => {
+    try {
+      const response = await apiClient.post('/session/refresh', {
+        sessionToken
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error('Session yenilenemedi.');
+    }
+  }
+};
+
 // Kullanıcı API'leri
 export const userAPI = {
-  // Kullanıcı giriş
+  // Kullanıcı giriş (eski versiyon - artık sessionAPI.login kullanılacak)
   login: async (email, password) => {
     try {
       const response = await apiClient.post('/user/login', {
@@ -131,6 +183,89 @@ export const userAPI = {
       return response.data;
     } catch (error) {
       throw new Error('Kullanıcı güncellenemedi.');
+    }
+  }
+};
+
+// Randevu API'leri
+export const appointmentAPI = {
+  // Randevu oluştur
+  createAppointment: async (doctorId, patientId, appointmentTime, doctorNote = '') => {
+    try {
+      const response = await apiClient.post('/appointment/create', {
+        doctorId: parseInt(doctorId),
+        patientId: parseInt(patientId),
+        appointmentTime: appointmentTime,
+        doctorNote: doctorNote
+      });
+      return response.data;
+    } catch (error) {
+      if (error.response?.status === 400) {
+        throw new Error('Randevu oluşturulamadı. Doktor bu saatte başka bir randevuya sahip olabilir.');
+      }
+      throw new Error('Randevu oluşturma işlemi başarısız.');
+    }
+  },
+
+  // Hasta randevularını getir
+  getPatientAppointments: async (patientId) => {
+    try {
+      const response = await apiClient.get(`/appointment/patient/${patientId}`);
+      return response.data;
+    } catch (error) {
+      throw new Error('Hasta randevuları alınamadı.');
+    }
+  },
+
+  // Doktor randevularını getir
+  getDoctorAppointments: async (doctorId) => {
+    try {
+      const response = await apiClient.get(`/appointment/doctor/${doctorId}`);
+      return response.data;
+    } catch (error) {
+      throw new Error('Doktor randevuları alınamadı.');
+    }
+  },
+
+  // Randevu onayala
+  approveAppointment: async (appointmentId) => {
+    try {
+      const response = await apiClient.post(`/appointment/approve/${appointmentId}`);
+      return response.data;
+    } catch (error) {
+      throw new Error('Randevu onaylanamadı.');
+    }
+  },
+
+  // Randevu reddet
+  rejectAppointment: async (appointmentId) => {
+    try {
+      const response = await apiClient.post(`/appointment/reject/${appointmentId}`);
+      return response.data;
+    } catch (error) {
+      throw new Error('Randevu reddedilemedi.');
+    }
+  },
+
+  // Randevu iptal et
+  cancelAppointment: async (appointmentId) => {
+    try {
+      const response = await apiClient.delete(`/appointment/cancel/${appointmentId}`);
+      return response.data;
+    } catch (error) {
+      throw new Error('Randevu iptal edilemedi.');
+    }
+  },
+
+  // Randevu notu ekle
+  setAppointmentNote: async (appointmentId, doctorNote) => {
+    try {
+      const response = await apiClient.post(`/appointment/setNote/${appointmentId}`, {
+        doctorNote: doctorNote
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error('Randevu notu eklenemedi.');
     }
   }
 };

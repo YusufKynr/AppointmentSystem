@@ -70,7 +70,7 @@ public class UserService {
         userRepository.deleteById(userId);
     }
 
-    // Basit User kayıt (eski versiyon - backward compatibility)
+    // User kayıt
     public User register(String email, String password, User.Role role) {
         if (userRepository.existsByEmail(email)) {
             throw new RuntimeException("Kullanıcı zaten mevcut: email=" + email);

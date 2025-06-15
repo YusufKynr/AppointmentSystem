@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { appointmentAPI } from '../services/api';
 import './DoctorDashboard.css';
 
 const DoctorDashboard = ({ user, onLogout }) => {
@@ -7,61 +8,136 @@ const DoctorDashboard = ({ user, onLogout }) => {
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [doctorNotes, setDoctorNotes] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  // Doktora özel randevuları localStorage'dan yükle
+  // Doktora özel randevuları database'den yükle
   useEffect(() => {
-    const doctorAppointmentsKey = `appointments_doctor_${user.id}`;
-    const savedAppointments = localStorage.getItem(doctorAppointmentsKey);
-    
-    if (savedAppointments) {
-      setAppointments(JSON.parse(savedAppointments));
-    } else {
-      // Yeni doktor hesapları için boş liste
-      setAppointments([]);
-    }
+    const loadAppointments = async () => {
+      try {
+        setLoading(true);
+        setError('');
+        
+        const doctorAppointments = await appointmentAPI.getDoctorAppointments(user.id);
+        
+        // Frontend için randevu bilgilerini düzenle
+        const mappedAppointments = doctorAppointments.map(appointment => ({
+          id: appointment.appointmentId,
+          patientId: appointment.patient.userId,
+          patientName: `${appointment.patient.name} ${appointment.patient.surname}`,
+          patientPhone: appointment.patient.phoneNo,
+          patientAge: calculateAge(appointment.patient.birthDate),
+          doctorId: appointment.doctor.userId,
+          doctorName: `${appointment.doctor.name} ${appointment.doctor.surname}`,
+          specialty: appointment.doctor.specialty,
+          date: appointment.appointmentDateTime.split('T')[0],
+          time: appointment.appointmentDateTime.split('T')[1].substring(0, 5),
+          notes: appointment.doctorNote || '',
+          status: appointment.status,
+          createdAt: appointment.appointmentDateTime
+        }));
+        
+        setAppointments(mappedAppointments);
+      } catch (error) {
+        setError('Randevular yüklenirken hata oluştu: ' + error.message);
+        console.error('Randevu yükleme hatası:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadAppointments();
   }, [user.id]);
 
-  // Randevuları localStorage'a kaydet
-  const saveAppointments = (newAppointments) => {
-    const doctorAppointmentsKey = `appointments_doctor_${user.id}`;
-    localStorage.setItem(doctorAppointmentsKey, JSON.stringify(newAppointments));
-    setAppointments(newAppointments);
+  // Yaş hesaplama fonksiyonu
+  const calculateAge = (birthDate) => {
+    if (!birthDate) return 'Bilinmiyor';
+    
+    const birth = new Date(birthDate);
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+    
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
+    
+    return age;
+  };
+
+  // Randevu listesini yenile
+  const refreshAppointments = async () => {
+    try {
+      const doctorAppointments = await appointmentAPI.getDoctorAppointments(user.id);
+      const mappedAppointments = doctorAppointments.map(appointment => ({
+        id: appointment.appointmentId,
+        patientId: appointment.patient.userId,
+        patientName: `${appointment.patient.name} ${appointment.patient.surname}`,
+        patientPhone: appointment.patient.phoneNo,
+        patientAge: calculateAge(appointment.patient.birthDate),
+        doctorId: appointment.doctor.userId,
+        doctorName: `${appointment.doctor.name} ${appointment.doctor.surname}`,
+        specialty: appointment.doctor.specialty,
+        date: appointment.appointmentDateTime.split('T')[0],
+        time: appointment.appointmentDateTime.split('T')[1].substring(0, 5),
+        notes: appointment.doctorNote || '',
+        status: appointment.status,
+        createdAt: appointment.appointmentDateTime
+      }));
+      
+      setAppointments(mappedAppointments);
+    } catch (error) {
+      setError('Randevular yenilenirken hata oluştu: ' + error.message);
+    }
   };
 
   const handleAppointmentAction = async (appointmentId, action, notes = '') => {
     setLoading(true);
+    setError('');
+    
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const updatedAppointments = appointments.map(apt => 
-        apt.id === appointmentId 
-          ? { ...apt, status: action, doctorNotes: notes }
-          : apt
-      );
-
-      saveAppointments(updatedAppointments);
-
-      // Hasta için de randevu durumunu güncelle
-      const appointment = appointments.find(apt => apt.id === appointmentId);
-      if (appointment && appointment.patientId) {
-        const patientAppointmentsKey = `appointments_patient_${appointment.patientId}`;
-        const patientAppointments = JSON.parse(localStorage.getItem(patientAppointmentsKey) || '[]');
-        const updatedPatientAppointments = patientAppointments.map(apt =>
-          apt.id === appointmentId
-            ? { ...apt, status: action, doctorNotes: notes }
-            : apt
-        );
-        localStorage.setItem(patientAppointmentsKey, JSON.stringify(updatedPatientAppointments));
+      if (action === 'CONFIRMED') {
+        await appointmentAPI.approveAppointment(appointmentId);
+      } else if (action === 'CANCELLED') {
+        await appointmentAPI.rejectAppointment(appointmentId);
       }
 
+      // Not ekle
+      if (notes && notes.trim() !== '') {
+        await appointmentAPI.setAppointmentNote(appointmentId, notes);
+      }
+
+      // Randevu listesini yenile
+      await refreshAppointments();
+
+      // Seçili randevu modal'ını kapat
       if (selectedAppointment && selectedAppointment.id === appointmentId) {
-        setSelectedAppointment({ ...selectedAppointment, status: action, doctorNotes: notes });
+        setSelectedAppointment(null);
       }
 
       setDoctorNotes('');
       alert(`Randevu ${action === 'CONFIRMED' ? 'onaylandı' : 'iptal edildi'}`);
     } catch (error) {
-      alert('İşlem sırasında hata oluştu.');
+      setError('İşlem sırasında hata oluştu: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddNote = async (appointmentId) => {
+    if (!doctorNotes.trim()) {
+      alert('Lütfen bir not girin.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await appointmentAPI.setAppointmentNote(appointmentId, doctorNotes);
+      await refreshAppointments();
+      setDoctorNotes('');
+      setSelectedAppointment(null);
+      alert('Randevu notu başarıyla eklendi.');
+    } catch (error) {
+      setError('Not eklenirken hata oluştu: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -71,291 +147,256 @@ const DoctorDashboard = ({ user, onLogout }) => {
     return appointments.filter(apt => apt.status === status);
   };
 
-  const getStatusClass = (status) => {
-    switch (status) {
-      case 'CONFIRMED': return 'status-approved';
-      case 'CANCELLED': return 'status-rejected';
-      default: return 'status-pending';
-    }
-  };
-
   const getStatusText = (status) => {
-    switch (status) {
-      case 'CONFIRMED': return 'Onaylandı';
-      case 'CANCELLED': return 'İptal Edildi';
-      default: return 'Beklemede';
-    }
+    const statusMap = {
+      'PENDING': 'Beklemede',
+      'CONFIRMED': 'Onaylandı',
+      'CANCELLED': 'İptal Edildi'
+    };
+    return statusMap[status] || status;
   };
 
-  const openAppointmentModal = (appointment) => {
-    setSelectedAppointment(appointment);
-    setDoctorNotes(appointment.doctorNotes || '');
+  const getSpecialtyLabel = (value) => {
+    const specialtyMap = {
+      'Dermatology': 'Dermatoloji',
+      'Cardiology': 'Kardiyoloji',
+      'Eye': 'Göz Hastalıkları',
+      'General_Surgery': 'Genel Cerrahi'
+    };
+    return specialtyMap[value] || value;
   };
 
-  const closeAppointmentModal = () => {
-    setSelectedAppointment(null);
-    setDoctorNotes('');
+  const renderAppointmentCard = (appointment) => (
+    <div key={appointment.id} className="appointment-card">
+      <div className="appointment-header">
+        <h4>{appointment.patientName}</h4>
+        <span className={`status ${appointment.status.toLowerCase()}`}>
+          {getStatusText(appointment.status)}
+        </span>
+      </div>
+      <div className="appointment-details">
+        <p><strong>Tarih:</strong> {new Date(appointment.date).toLocaleDateString('tr-TR')}</p>
+        <p><strong>Saat:</strong> {appointment.time}</p>
+        <p><strong>Telefon:</strong> {appointment.patientPhone}</p>
+        <p><strong>Yaş:</strong> {appointment.patientAge}</p>
+        {appointment.notes && (
+          <div className="doctor-notes-preview">
+            <strong>Doktor Notu:</strong>
+            <p>{appointment.notes}</p>
+          </div>
+        )}
+      </div>
+      <div className="appointment-actions">
+        <button
+          onClick={() => setSelectedAppointment(appointment)}
+          className="btn btn-info"
+        >
+          Detay
+        </button>
+        {appointment.status === 'PENDING' && (
+          <>
+            <button
+              onClick={() => handleAppointmentAction(appointment.id, 'CONFIRMED')}
+              className="btn btn-success"
+              disabled={loading}
+            >
+              Onayla
+            </button>
+            <button
+              onClick={() => handleAppointmentAction(appointment.id, 'CANCELLED')}
+              className="btn btn-danger"
+              disabled={loading}
+            >
+              Reddet
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderModal = () => {
+    if (!selectedAppointment) return null;
+
+    return (
+      <div className="modal-overlay" onClick={() => setSelectedAppointment(null)}>
+        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header">
+            <h3>Randevu Detayları</h3>
+            <button
+              onClick={() => setSelectedAppointment(null)}
+              className="close-btn"
+            >
+              ×
+            </button>
+          </div>
+          <div className="modal-body">
+            <div className="patient-info">
+              <h4>Hasta Bilgileri</h4>
+              <p><strong>Ad Soyad:</strong> {selectedAppointment.patientName}</p>
+              <p><strong>Telefon:</strong> {selectedAppointment.patientPhone}</p>
+              <p><strong>Yaş:</strong> {selectedAppointment.patientAge}</p>
+            </div>
+            <div className="appointment-info">
+              <h4>Randevu Bilgileri</h4>
+              <p><strong>Tarih:</strong> {new Date(selectedAppointment.date).toLocaleDateString('tr-TR')}</p>
+              <p><strong>Saat:</strong> {selectedAppointment.time}</p>
+              <p><strong>Durum:</strong> {getStatusText(selectedAppointment.status)}</p>
+            </div>
+            {selectedAppointment.notes && (
+              <div className="existing-notes">
+                <h4>Mevcut Doktor Notu</h4>
+                <p>{selectedAppointment.notes}</p>
+              </div>
+            )}
+            <div className="doctor-notes-section">
+              <h4>Doktor Notu Ekle</h4>
+              <textarea
+                value={doctorNotes}
+                onChange={(e) => setDoctorNotes(e.target.value)}
+                placeholder="Randevu ile ilgili notlarınızı yazın..."
+                rows={4}
+                className="notes-textarea"
+              />
+            </div>
+          </div>
+          <div className="modal-actions">
+            <button
+              onClick={() => handleAddNote(selectedAppointment.id)}
+              className="btn btn-success"
+              disabled={loading || !doctorNotes.trim()}
+            >
+              {loading ? 'Kaydediliyor...' : 'Notu Kaydet'}
+            </button>
+            <button
+              onClick={() => setSelectedAppointment(null)}
+              className="btn btn-secondary"
+            >
+              İptal
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   };
+
+  // İstatistik hesaplama
+  const getStats = () => {
+    return {
+      pending: filterAppointments('PENDING').length,
+      confirmed: filterAppointments('CONFIRMED').length,
+      cancelled: filterAppointments('CANCELLED').length,
+      total: appointments.length
+    };
+  };
+
+  const stats = getStats();
 
   return (
     <div className="doctor-dashboard">
-      <div className="dashboard-header medical-card">
+      <div className="dashboard-header">
         <h2>Doktor Paneli</h2>
-        <p>Hoş geldiniz, <strong>{user.name}</strong></p>
-        <div className="doctor-id">Doktor ID: #{user.id}</div>
+        <div className="user-info">
+          <span>Hoş geldin, Dr. {user.name}!</span>
+          <button onClick={onLogout} className="btn-logout">
+            Çıkış Yap
+          </button>
+        </div>
       </div>
 
+      {/* İstatistik Kartları */}
       <div className="dashboard-stats">
-        <div className="stat-card medical-card">
-          <h3>{filterAppointments('PENDING').length}</h3>
-          <p>Bekleyen Randevular</p>
-        </div>
-        <div className="stat-card medical-card">
-          <h3>{filterAppointments('CONFIRMED').length}</h3>
-          <p>Onaylanan Randevular</p>
-        </div>
-        <div className="stat-card medical-card">
-          <h3>{filterAppointments('CANCELLED').length}</h3>
-          <p>İptal Edilen Randevular</p>
-        </div>
-        <div className="stat-card medical-card">
-          <h3>{appointments.length}</h3>
+        <div className="stat-card">
+          <h3>{stats.total}</h3>
           <p>Toplam Randevu</p>
         </div>
+        <div className="stat-card">
+          <h3>{stats.pending}</h3>
+          <p>Bekleyen</p>
+        </div>
+        <div className="stat-card">
+          <h3>{stats.confirmed}</h3>
+          <p>Onaylanan</p>
+        </div>
+        <div className="stat-card">
+          <h3>{stats.cancelled}</h3>
+          <p>İptal Edilen</p>
+        </div>
       </div>
 
-      <div className="dashboard-tabs">
-        <button 
-          className={`tab ${activeTab === 'PENDING' ? 'active' : ''}`}
+      {error && <div className="error-message">{error}</div>}
+
+      <div className="dashboard-nav">
+        <button
+          className={`nav-btn ${activeTab === 'PENDING' ? 'active' : ''}`}
           onClick={() => setActiveTab('PENDING')}
         >
-          Bekleyen ({filterAppointments('PENDING').length})
+          Bekleyenler ({stats.pending})
         </button>
-        <button 
-          className={`tab ${activeTab === 'CONFIRMED' ? 'active' : ''}`}
+        <button
+          className={`nav-btn ${activeTab === 'CONFIRMED' ? 'active' : ''}`}
           onClick={() => setActiveTab('CONFIRMED')}
         >
-          Onaylanan ({filterAppointments('CONFIRMED').length})
+          Onaylananlar ({stats.confirmed})
         </button>
-        <button 
-          className={`tab ${activeTab === 'CANCELLED' ? 'active' : ''}`}
+        <button
+          className={`nav-btn ${activeTab === 'CANCELLED' ? 'active' : ''}`}
           onClick={() => setActiveTab('CANCELLED')}
         >
-          İptal Edilen ({filterAppointments('CANCELLED').length})
+          İptal Edilenler ({stats.cancelled})
         </button>
       </div>
 
       <div className="dashboard-content">
-        <div className="appointments-list">
-          {activeTab === 'PENDING' && (
-            <div className="appointments-section">
-              <h3>Onay Bekleyen Randevular</h3>
-              {filterAppointments('PENDING').length === 0 ? (
-                <div className="empty-state">
-                  <p>Bekleyen randevu bulunmuyor.</p>
-                  <p>Hastalar yeni randevu talep ettiğinde burada görünecek.</p>
-                </div>
-              ) : (
-                <div className="appointments-grid">
-                  {filterAppointments('PENDING').map(appointment => (
-                    <div key={appointment.id} className={`appointment-card medical-card ${getStatusClass(appointment.status)}`}>
-                      <div className="appointment-header">
-                        <h4>{appointment.patientName}</h4>
-                        <span className={`status-badge ${getStatusClass(appointment.status)}`}>
-                          {getStatusText(appointment.status)}
-                        </span>
-                      </div>
-                      <div className="appointment-details">
-                        <p><strong>Tarih:</strong> {new Date(appointment.date).toLocaleDateString('tr-TR')}</p>
-                        <p><strong>Saat:</strong> {appointment.time}</p>
-                        <p><strong>Telefon:</strong> {appointment.patientPhone}</p>
-                        <p><strong>Yaş:</strong> {appointment.patientAge}</p>
-                        {appointment.notes && (
-                          <p><strong>Hasta Notu:</strong> {appointment.notes}</p>
-                        )}
-                      </div>
-                      <div className="appointment-actions">
-                        <button 
-                          onClick={() => openAppointmentModal(appointment)}
-                          className="detail-btn btn"
-                        >
-                          Detay
-                        </button>
-                        <button 
-                          onClick={() => handleAppointmentAction(appointment.id, 'CONFIRMED')}
-                          className="approve-btn btn btn-success"
-                          disabled={loading}
-                        >
-                          Onayla
-                        </button>
-                        <button 
-                          onClick={() => handleAppointmentAction(appointment.id, 'CANCELLED')}
-                          className="reject-btn btn btn-danger"
-                          disabled={loading}
-                        >
-                          İptal
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+        {loading && <div className="loading">Yükleniyor...</div>}
+        
+        {activeTab === 'PENDING' && (
+          <div className="appointments-section">
+            <h3>Onay Bekleyen Randevular</h3>
+            {filterAppointments('PENDING').length === 0 ? (
+              <div className="no-data">
+                <p>Bekleyen randevu bulunmuyor.</p>
+              </div>
+            ) : (
+              <div className="appointments-list">
+                {filterAppointments('PENDING').map(renderAppointmentCard)}
+              </div>
+            )}
+          </div>
+        )}
 
-          {activeTab === 'CONFIRMED' && (
-            <div className="appointments-section">
-              <h3>Onaylanan Randevular</h3>
-              {filterAppointments('CONFIRMED').length === 0 ? (
-                <div className="empty-state">
-                  <p>Onaylanan randevu bulunmuyor.</p>
-                </div>
-              ) : (
-                <div className="appointments-grid">
-                  {filterAppointments('CONFIRMED').map(appointment => (
-                    <div key={appointment.id} className={`appointment-card medical-card ${getStatusClass(appointment.status)}`}>
-                      <div className="appointment-header">
-                        <h4>{appointment.patientName}</h4>
-                        <span className={`status-badge ${getStatusClass(appointment.status)}`}>
-                          {getStatusText(appointment.status)}
-                        </span>
-                      </div>
-                      <div className="appointment-details">
-                        <p><strong>Tarih:</strong> {new Date(appointment.date).toLocaleDateString('tr-TR')}</p>
-                        <p><strong>Saat:</strong> {appointment.time}</p>
-                        <p><strong>Telefon:</strong> {appointment.patientPhone}</p>
-                        {appointment.doctorNotes && (
-                          <div className="doctor-notes-preview">
-                            <strong>Doktor Notları:</strong>
-                            <p>{appointment.doctorNotes}</p>
-                          </div>
-                        )}
-                      </div>
-                      <div className="appointment-actions">
-                        <button 
-                          onClick={() => openAppointmentModal(appointment)}
-                          className="detail-btn btn"
-                        >
-                          Detay/Not Ekle
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+        {activeTab === 'CONFIRMED' && (
+          <div className="appointments-section">
+            <h3>Onaylanmış Randevular</h3>
+            {filterAppointments('CONFIRMED').length === 0 ? (
+              <div className="no-data">
+                <p>Onaylanmış randevu bulunmuyor.</p>
+              </div>
+            ) : (
+              <div className="appointments-list">
+                {filterAppointments('CONFIRMED').map(renderAppointmentCard)}
+              </div>
+            )}
+          </div>
+        )}
 
-          {activeTab === 'CANCELLED' && (
-            <div className="appointments-section">
-              <h3>İptal Edilen Randevular</h3>
-              {filterAppointments('CANCELLED').length === 0 ? (
-                <div className="empty-state">
-                  <p>İptal edilen randevu bulunmuyor.</p>
-                </div>
-              ) : (
-                <div className="appointments-grid">
-                  {filterAppointments('CANCELLED').map(appointment => (
-                    <div key={appointment.id} className={`appointment-card medical-card ${getStatusClass(appointment.status)}`}>
-                      <div className="appointment-header">
-                        <h4>{appointment.patientName}</h4>
-                        <span className={`status-badge ${getStatusClass(appointment.status)}`}>
-                          {getStatusText(appointment.status)}
-                        </span>
-                      </div>
-                      <div className="appointment-details">
-                        <p><strong>Tarih:</strong> {new Date(appointment.date).toLocaleDateString('tr-TR')}</p>
-                        <p><strong>Saat:</strong> {appointment.time}</p>
-                        {appointment.doctorNotes && (
-                          <div className="doctor-notes-preview">
-                            <strong>İptal Sebebi:</strong>
-                            <p>{appointment.doctorNotes}</p>
-                          </div>
-                        )}
-                      </div>
-                      <div className="appointment-actions">
-                        <button 
-                          onClick={() => openAppointmentModal(appointment)}
-                          className="detail-btn btn"
-                        >
-                          Detay
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+        {activeTab === 'CANCELLED' && (
+          <div className="appointments-section">
+            <h3>İptal Edilmiş Randevular</h3>
+            {filterAppointments('CANCELLED').length === 0 ? (
+              <div className="no-data">
+                <p>İptal edilmiş randevu bulunmuyor.</p>
+              </div>
+            ) : (
+              <div className="appointments-list">
+                {filterAppointments('CANCELLED').map(renderAppointmentCard)}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Randevu Detay Modal */}
-      {selectedAppointment && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h3>Randevu Detayları</h3>
-              <button onClick={closeAppointmentModal} className="close-btn">✕</button>
-            </div>
-            <div className="modal-body">
-              <div className="patient-info">
-                <h4>Hasta Bilgileri</h4>
-                <p><strong>Ad Soyad:</strong> {selectedAppointment.patientName}</p>
-                <p><strong>Telefon:</strong> {selectedAppointment.patientPhone}</p>
-                <p><strong>Yaş:</strong> {selectedAppointment.patientAge}</p>
-                <p><strong>Randevu Tarihi:</strong> {new Date(selectedAppointment.date).toLocaleDateString('tr-TR')}</p>
-                <p><strong>Randevu Saati:</strong> {selectedAppointment.time}</p>
-                {selectedAppointment.notes && (
-                  <p><strong>Hasta Notu:</strong> {selectedAppointment.notes}</p>
-                )}
-              </div>
-              <div className="doctor-notes-section">
-                <h4>Doktor Notları</h4>
-                <textarea
-                  value={doctorNotes}
-                  onChange={(e) => setDoctorNotes(e.target.value)}
-                  placeholder="Hasta ile ilgili notlarınızı yazın..."
-                  rows="4"
-                  className="notes-textarea"
-                />
-              </div>
-            </div>
-            <div className="modal-actions">
-              {selectedAppointment.status === 'PENDING' && (
-                <>
-                  <button 
-                    onClick={() => handleAppointmentAction(selectedAppointment.id, 'CONFIRMED', doctorNotes)}
-                    className="approve-btn btn btn-success"
-                    disabled={loading}
-                  >
-                    Onayla ve Not Kaydet
-                  </button>
-                  <button 
-                    onClick={() => handleAppointmentAction(selectedAppointment.id, 'CANCELLED', doctorNotes)}
-                    className="reject-btn btn btn-danger"
-                    disabled={loading}
-                  >
-                    İptal ve Not Kaydet
-                  </button>
-                </>
-              )}
-              {selectedAppointment.status === 'CONFIRMED' && (
-                <button 
-                  onClick={() => handleAppointmentAction(selectedAppointment.id, 'CONFIRMED', doctorNotes)}
-                  className="save-btn btn btn-primary"
-                  disabled={loading}
-                >
-                  Notları Kaydet
-                </button>
-              )}
-              <button onClick={closeAppointmentModal} className="cancel-btn btn">
-                İptal
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {renderModal()}
     </div>
   );
 };

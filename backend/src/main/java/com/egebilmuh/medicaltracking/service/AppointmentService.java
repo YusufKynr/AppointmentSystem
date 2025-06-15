@@ -30,7 +30,7 @@ public class AppointmentService {
         appointment.setDoctor(existDoctor);
         appointment.setPatient(existPatient);
         appointment.setAppointmentDateTime(appointmentTime);
-        appointment.setStatus(Appointment.AppointmentStatus.CONFIRMED);
+        appointment.setStatus(Appointment.AppointmentStatus.PENDING);
 
         return appointmentRepository.save(appointment);
     }

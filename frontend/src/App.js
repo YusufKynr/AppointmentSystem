@@ -4,50 +4,144 @@ import Login from './components/Login';
 import PatientDashboard from './components/PatientDashboard';
 import DoctorDashboard from './components/DoctorDashboard';
 import Register from './components/Register';
+import { sessionAPI } from './services/api';
 
 function App() {
   const [user, setUser] = useState(null);
   const [currentView, setCurrentView] = useState('login');
+  const [sessionToken, setSessionToken] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // Sayfa yüklendiğinde localStorage'dan kullanıcı bilgilerini kontrol et
+  // Sayfa yüklendiğinde session token'ı kontrol et
   useEffect(() => {
-    const savedUser = localStorage.getItem('currentUser');
-    const savedView = localStorage.getItem('currentView');
-    
-    if (savedUser && savedView) {
+    const checkSession = async () => {
       try {
-        const parsedUser = JSON.parse(savedUser);
-        setUser(parsedUser);
-        setCurrentView(savedView);
+        // Session token'ı sessionStorage'dan al (sadece tarayıcı oturumu için)
+        const savedToken = sessionStorage.getItem('sessionToken');
+        
+        if (savedToken) {
+          // Session'ı database'den doğrula
+          const sessionData = await sessionAPI.validateSession(savedToken);
+          
+          if (sessionData.valid) {
+            // Session geçerli, kullanıcı bilgilerini ayarla
+            const userData = {
+              ...sessionData.user,
+              id: sessionData.user.userId,
+              role: sessionData.user.role === 'PATIENT' ? 'hasta' : 'doktor'
+            };
+            
+            setUser(userData);
+            setSessionToken(savedToken);
+            setCurrentView(userData.role === 'hasta' ? 'patient' : 'doctor');
+          } else {
+            // Session geçersiz, temizle
+            sessionStorage.removeItem('sessionToken');
+            setSessionToken(null);
+            setUser(null);
+            setCurrentView('login');
+          }
+        }
       } catch (error) {
-        console.error('Kullanıcı bilgileri okunurken hata:', error);
-        // Hatalı veri varsa temizle
-        localStorage.removeItem('currentUser');
-        localStorage.removeItem('currentView');
+        console.error('Session kontrol hatası:', error);
+        // Hata durumunda session'ı temizle
+        sessionStorage.removeItem('sessionToken');
+        setSessionToken(null);
+        setUser(null);
+        setCurrentView('login');
+      } finally {
+        setLoading(false);
       }
-    }
+    };
+
+    checkSession();
   }, []);
 
-  const handleLogin = (userData) => {
-    setUser(userData);
-    const viewType = userData.role === 'hasta' ? 'patient' : 'doctor';
-    setCurrentView(viewType);
-    
-    // Kullanıcı bilgilerini localStorage'a kaydet
-    localStorage.setItem('currentUser', JSON.stringify(userData));
-    localStorage.setItem('currentView', viewType);
+  // Session yenileme (her 30 dakikada bir)
+  useEffect(() => {
+    if (sessionToken) {
+      const refreshInterval = setInterval(async () => {
+        try {
+          const refreshedSession = await sessionAPI.refreshSession(sessionToken);
+          setSessionToken(refreshedSession.sessionToken);
+          sessionStorage.setItem('sessionToken', refreshedSession.sessionToken);
+        } catch (error) {
+          console.error('Session yenileme hatası:', error);
+          handleLogout();
+        }
+      }, 30 * 60 * 1000); // 30 dakika
+
+      return () => clearInterval(refreshInterval);
+    }
+  }, [sessionToken]);
+
+  const handleLogin = async (loginData) => {
+    try {
+      setLoading(true);
+      
+      // Database'den session oluştur
+      const sessionData = await sessionAPI.login(loginData.email, loginData.password);
+      
+      // Kullanıcı bilgilerini düzenle
+      const userData = {
+        ...sessionData.user,
+        id: sessionData.user.userId,
+        role: sessionData.user.role === 'PATIENT' ? 'hasta' : 'doktor'
+      };
+      
+      // State'leri güncelle
+      setUser(userData);
+      setSessionToken(sessionData.sessionToken);
+      
+      // Session token'ı sessionStorage'a kaydet
+      sessionStorage.setItem('sessionToken', sessionData.sessionToken);
+      
+      // View'ı ayarla
+      const viewType = userData.role === 'hasta' ? 'patient' : 'doctor';
+      setCurrentView(viewType);
+      
+    } catch (error) {
+      console.error('Giriş hatası:', error);
+      throw error; // Login component'ine hata gönder
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleLogout = () => {
-    setUser(null);
-    setCurrentView('login');
-    
-    // localStorage'dan kullanıcı bilgilerini temizle
-    localStorage.removeItem('currentUser');
-    localStorage.removeItem('currentView');
+  const handleLogout = async () => {
+    try {
+      if (sessionToken) {
+        // Database'den session'ı geçersiz kıl
+        await sessionAPI.logout(sessionToken);
+      }
+    } catch (error) {
+      console.error('Çıkış hatası:', error);
+    } finally {
+      // Local state'i temizle
+      setUser(null);
+      setCurrentView('login');
+      setSessionToken(null);
+      
+      // SessionStorage'ı temizle
+      sessionStorage.removeItem('sessionToken');
+    }
+  };
+
+  const handleRegister = (userData) => {
+    // Kayıt sonrası otomatik giriş yapmak için login fonksiyonunu çağır
+    handleLogin({ email: userData.email, password: userData.password });
   };
 
   const renderCurrentView = () => {
+    if (loading) {
+      return (
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <p>Yükleniyor...</p>
+        </div>
+      );
+    }
+
     switch (currentView) {
       case 'login':
         return (
@@ -59,7 +153,7 @@ function App() {
       case 'register':
         return (
           <Register 
-            onRegister={handleLogin}
+            onRegister={handleRegister}
             onSwitchToLogin={() => setCurrentView('login')}
           />
         );

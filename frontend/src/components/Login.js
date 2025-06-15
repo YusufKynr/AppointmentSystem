@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { userAPI } from '../services/api';
 import './Login.css';
 
 const Login = ({ onLogin, onSwitchToRegister }) => {
@@ -15,18 +16,18 @@ const Login = ({ onLogin, onSwitchToRegister }) => {
     setError('');
 
     try {
-      // API çağrısı simülasyonu
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Database'den kullanıcı girişi
+      const user = await userAPI.login(formData.email, formData.password);
       
-      // Sadece kayıt olan kullanıcıları kontrol et
-      const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
-      const foundUser = registeredUsers.find(u => u.email === formData.email);
-
-      if (foundUser && formData.password === '123456') { // Basit şifre kontrolü (gerçek uygulamada hash kullanılır)
-        onLogin(foundUser);
-      } else {
-        throw new Error('Geçersiz kullanıcı adı veya şifre');
-      }
+      // Role mapping (backend PATIENT/DOCTOR olarak geliyor)
+      const mappedUser = {
+        ...user,
+        id: user.userId,
+        name: user.email.split('@')[0], // Email'den geçici isim
+        role: user.role === 'PATIENT' ? 'hasta' : 'doktor'
+      };
+      
+      onLogin(mappedUser);
     } catch (err) {
       setError(err.message);
     } finally {

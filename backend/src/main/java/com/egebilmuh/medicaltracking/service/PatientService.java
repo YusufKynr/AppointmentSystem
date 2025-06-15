@@ -29,8 +29,8 @@ public class PatientService {
         if (updatedPatient.getSurname() != null) {
             existPatient.setSurname(updatedPatient.getSurname());
         }
-        if (updatedPatient.getAddress() != null) {
-            existPatient.setAddress(updatedPatient.getAddress());
+        if (updatedPatient.getBirthDate() != null) {
+            existPatient.setBirthDate(updatedPatient.getBirthDate());
         }
         if (updatedPatient.getPhoneNo() != null) {
             existPatient.setPhoneNo(updatedPatient.getPhoneNo());

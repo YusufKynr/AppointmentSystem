@@ -6,6 +6,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDate;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -14,16 +16,17 @@ import lombok.Setter;
 public class Doctor extends User {
     private String name;
     private String surname;
-    private String address;
+    private LocalDate birthDate;
     private String phoneNo;
-    private String email;
-    private enum Specialty{
+    
+    public enum Specialty {
         Dermatology,
         Cardiology,
         Eye,
         General_Surgery
-    };
+    }
+    
     @Enumerated(EnumType.STRING)
-    private Specialty speciality;
+    private Specialty specialty;
     private boolean availability;
 }

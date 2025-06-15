@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
+import { userAPI } from '../services/api';
 import './Register.css';
 
 const Register = ({ onRegister, onSwitchToLogin }) => {
   const [formData, setFormData] = useState({
     name: '',
+    surname: '',
     email: '',
     password: '',
     confirmPassword: '',
-    phone: '',
+    phoneNo: '',
     birthDate: '',
     role: 'hasta',
     specialty: ''
@@ -38,32 +40,57 @@ const Register = ({ onRegister, onSwitchToLogin }) => {
       if (formData.role === 'doktor' && !formData.specialty) {
         throw new Error('Doktor için uzmanlık alanı seçimi zorunludur');
       }
-
-      // E-posta kontrolü
-      const existingUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
-      if (existingUsers.find(user => user.email === formData.email)) {
-        throw new Error('Bu e-posta adresi zaten kullanılıyor');
+      if (!formData.birthDate) {
+        throw new Error('Doğum tarihi zorunludur');
       }
 
-      // API çağrısı simülasyonu
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Yaş kontrolü (18 yaş minimum)
+      const birthDate = new Date(formData.birthDate);
+      const today = new Date();
+      const age = Math.floor((today - birthDate) / (365.25 * 24 * 60 * 60 * 1000));
+      if (age < 18) {
+        throw new Error('18 yaşından küçük kullanıcılar kayıt olamaz');
+      }
+
+      let registeredUser;
+
+      if (formData.role === 'doktor') {
+        // Doktor kayıt
+        const doctorData = {
+          email: formData.email,
+          password: formData.password,
+          name: formData.name,
+          surname: formData.surname,
+          birthDate: formData.birthDate,
+          phoneNo: formData.phoneNo,
+          specialty: formData.specialty
+        };
+        registeredUser = await userAPI.registerDoctor(doctorData);
+      } else {
+        // Hasta kayıt
+        const patientData = {
+          email: formData.email,
+          password: formData.password,
+          name: formData.name,
+          surname: formData.surname,
+          birthDate: formData.birthDate,
+          phoneNo: formData.phoneNo
+        };
+        registeredUser = await userAPI.registerPatient(patientData);
+      }
       
-      // Kayıt başarılı, kullanıcıyı oluştur
-      const newUser = {
-        id: Date.now(),
-        name: formData.name,
-        email: formData.email,
+      // Frontend için user mapping
+      const mappedUser = {
+        ...registeredUser,
+        id: registeredUser.userId,
+        name: `${registeredUser.name} ${registeredUser.surname}`,
         role: formData.role,
-        phone: formData.phone,
-        birthDate: formData.birthDate,
-        specialty: formData.role === 'doktor' ? formData.specialty : null
+        phone: registeredUser.phoneNo,
+        birthDate: registeredUser.birthDate,
+        specialty: registeredUser.specialty || null
       };
 
-      // Kullanıcıyı kayıt listesine ekle
-      existingUsers.push(newUser);
-      localStorage.setItem('registeredUsers', JSON.stringify(existingUsers));
-
-      onRegister(newUser);
+      onRegister(mappedUser);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -81,11 +108,6 @@ const Register = ({ onRegister, onSwitchToLogin }) => {
     });
   };
 
-  const getSpecialtyLabel = (value) => {
-    const specialty = specialties.find(s => s.value === value);
-    return specialty ? specialty.label : value;
-  };
-
   return (
     <div className="register-container">
       <div className="register-card medical-card">
@@ -98,17 +120,32 @@ const Register = ({ onRegister, onSwitchToLogin }) => {
         <form onSubmit={handleSubmit} className="register-form">
           <div className="form-row">
             <div className="form-group">
-              <label htmlFor="name">Ad Soyad</label>
+              <label htmlFor="name">Ad</label>
               <input
                 type="text"
                 id="name"
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                placeholder="Adınızı ve soyadınızı girin"
+                placeholder="Adınızı girin"
                 required
               />
             </div>
+            <div className="form-group">
+              <label htmlFor="surname">Soyad</label>
+              <input
+                type="text"
+                id="surname"
+                name="surname"
+                value={formData.surname}
+                onChange={handleChange}
+                placeholder="Soyadınızı girin"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="form-row">
             <div className="form-group">
               <label htmlFor="email">E-posta Adresi</label>
               <input
@@ -118,6 +155,18 @@ const Register = ({ onRegister, onSwitchToLogin }) => {
                 value={formData.email}
                 onChange={handleChange}
                 placeholder="kullanici@hastane.com"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="phoneNo">Telefon</label>
+              <input
+                type="tel"
+                id="phoneNo"
+                name="phoneNo"
+                value={formData.phoneNo}
+                onChange={handleChange}
+                placeholder="05XX XXX XX XX"
                 required
               />
             </div>
@@ -150,30 +199,18 @@ const Register = ({ onRegister, onSwitchToLogin }) => {
             </div>
           </div>
 
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="phone">Telefon Numarası</label>
-              <input
-                type="tel"
-                id="phone"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                placeholder="0555 123 45 67"
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="birthDate">Doğum Tarihi</label>
-              <input
-                type="date"
-                id="birthDate"
-                name="birthDate"
-                value={formData.birthDate}
-                onChange={handleChange}
-                required
-              />
-            </div>
+          <div className="form-group">
+            <label htmlFor="birthDate">Doğum Tarihi</label>
+            <input
+              type="date"
+              id="birthDate"
+              name="birthDate"
+              value={formData.birthDate}
+              onChange={handleChange}
+              max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
+              required
+            />
+            <small className="form-note">18 yaşından büyük olmalısınız</small>
           </div>
 
           <div className="form-row">

@@ -6,6 +6,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDate;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -14,7 +16,6 @@ import lombok.Setter;
 public class Patient extends User {
     private String name;
     private String surname;
-    private String address;
+    private LocalDate birthDate;
     private String phoneNo;
-    private String email;
 }

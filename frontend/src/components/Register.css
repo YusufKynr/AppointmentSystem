@@ -268,4 +268,15 @@
   .register-form .form-row {
     grid-template-columns: 1fr;
   }
+}
+
+.form-note {
+  color: #666;
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
+  display: block;
+}
+
+.form-group input[type="date"] {
+  cursor: pointer;
 } 

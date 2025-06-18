@@ -136,4 +136,46 @@ public class AppointmentService {
         }
         appointmentRepository.deleteById(appointmentId);
     }
+
+    /**
+     * Randevuya Not Ekleme - Controller tarafından kullanılan metod adı
+     */
+    public Appointment setNoteToAppointment(int appointmentId, String doctorNote) {
+        return addDoctorNote(appointmentId, doctorNote);
+    }
+
+    /**
+     * Doktor ID'sine göre randevuları getirme - Controller tarafından kullanılan metod adı
+     */
+    public List<Appointment> getAppointmentsByDoctor(int doctorId) {
+        return getDoctorAppointments(doctorId);
+    }
+
+    /**
+     * Hasta ID'sine göre randevuları getirme - Controller tarafından kullanılan metod adı
+     */
+    public List<Appointment> getAppointmentsByPatient(int patientId) {
+        return getPatientAppointments(patientId);
+    }
+
+    /**
+     * Randevuyu İptal Etme
+     */
+    public Appointment cancelAppointment(int appointmentId) {
+        return updateAppointmentStatus(appointmentId, Appointment.AppointmentStatus.CANCELLED);
+    }
+
+    /**
+     * Randevuyu Onaylama
+     */
+    public Appointment approveAppointment(int appointmentId) {
+        return updateAppointmentStatus(appointmentId, Appointment.AppointmentStatus.CONFIRMED);
+    }
+
+    /**
+     * Randevuyu Reddetme
+     */
+    public Appointment rejectAppointment(int appointmentId) {
+        return updateAppointmentStatus(appointmentId, Appointment.AppointmentStatus.CANCELLED);
+    }
 }

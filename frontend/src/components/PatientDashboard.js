@@ -149,6 +149,23 @@ const PatientDashboard = ({ user, onLogout }) => {
     }
   };
 
+  // 15 dakika aralarla saat seçenekleri oluştur (09:00 - 16:00)
+  const generateTimeOptions = () => {
+    const options = [];
+    const startHour = 9; // 09:00
+    const endHour = 16; // 16:00
+    
+    for (let hour = startHour; hour < endHour; hour++) {
+      for (let minute = 0; minute < 60; minute += 15) {
+        const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+        const displayTime = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+        options.push({ value: timeString, label: displayTime });
+      }
+    }
+    
+    return options;
+  };
+
   const handleFormChange = (e) => {
     const { name, value } = e.target;
     setAppointmentForm(prev => ({
@@ -312,14 +329,20 @@ const PatientDashboard = ({ user, onLogout }) => {
           </div>
           <div className="form-group">
             <label htmlFor="time">Saat</label>
-            <input
-              type="time"
+            <select
               id="time"
               name="time"
               value={appointmentForm.time}
               onChange={handleFormChange}
               required
-            />
+            >
+              <option value="">Saat seçin</option>
+              {generateTimeOptions().map(timeOption => (
+                <option key={timeOption.value} value={timeOption.value}>
+                  {timeOption.label}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 

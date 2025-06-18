@@ -14,6 +14,7 @@ public interface DoctorRepository extends JpaRepository<Doctor,Integer> {
     
     /**
      * Uzmanlık Alanına Göre Doktor Filtreleme
+     */
     List<Doctor> findBySpecialty(Doctor.Specialty specialty);
     
     /**

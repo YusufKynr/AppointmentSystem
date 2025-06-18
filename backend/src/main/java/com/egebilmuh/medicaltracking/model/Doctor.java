@@ -31,34 +31,21 @@ public class Doctor extends User {
     
     /**
      * Doktorun Adı
-     * 
-     * Veritabanında 'name' sütunu olarak saklanır.
-     * Kullanıcı arayüzünde doktor listelerinde gösterilir.
      */
     private String name;
     
     /**
      * Doktorun Soyadı
-     * 
-     * Ad ile birlikte doktorun tam ismini oluşturur.
      */
     private String surname;
     
     /**
      * Doktorun Doğum Tarihi
-     * 
-     * LocalDate tipinde saklanır - sadece tarih, saat bilgisi yoktur.
-     * 
-     * Öğrenci Notu: Java 8+ ile gelen LocalDate, eski Date sınıfından
-     * daha güvenli ve kullanışlıdır. Time zone problemi yaşanmaz.
      */
     private LocalDate birthDate;
     
     /**
      * Doktorun Telefon Numarası
-     * 
-     * İletişim bilgisi olarak kullanılır.
-     * String tipinde saklanır çünkü matematiksel işlem yapılmaz.
      */
     private String phoneNo;
     
@@ -70,9 +57,6 @@ public class Doctor extends User {
      * - Cardiology: Kardiyoloji  
      * - Eye: Göz Hastalıkları
      * - General_Surgery: Genel Cerrahi
-     * 
-     * Öğrenci Notu: Enum kullanarak yalnızca geçerli değerlerin 
-     * girilmesini sağlarız (Data Integrity).
      */
     public enum Specialty {
         Dermatology,
@@ -85,9 +69,7 @@ public class Doctor extends User {
      * Doktorun Uzmanlık Alanı
      * 
      * @Enumerated(EnumType.STRING) - Enum değerini veritabanında string olarak saklar
-     * 
-     * Öğrenci Notu: STRING tipinde saklama, enum sırası değişse bile
-     * veritabanının bozulmamasını sağlar.
+     *
      */
     @Enumerated(EnumType.STRING)
     private Specialty specialty;

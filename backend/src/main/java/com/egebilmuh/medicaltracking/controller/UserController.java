@@ -18,19 +18,6 @@ import java.util.Map;
  * Bu sınıf kullanıcı yönetimi için HTTP API endpoint'lerini sağlar.
  * RESTful API standartlarına uygun olarak tasarlanmıştır.
  * 
- * Sorumluluklar:
- * - HTTP isteklerini karşılama ve yanıtlama
- * - Request/Response DTO dönüşümleri
- * - HTTP status code yönetimi
- * - Exception handling ve error response'ları
- * - Request validation (temel seviyede)
- * 
- * Öğrenci Notu: Controller katmanında SADECE web layer logic'i olmalı:
- * - HTTP request parsing
- * - Service method çağrısı
- * - HTTP response oluşturma
- * Business logic kesinlikle Service katmanında olmalı!
- * 
  * REST API Design Patterns:
  * - GET /user/{id} - Resource'u ID ile getir
  * - GET /user/getAll - Collection'ı listele
@@ -52,13 +39,6 @@ public class UserController {
 
     /**
      * Constructor Injection
-     * 
-     * @param userService Kullanıcı business logic service'i
-     * 
-     * Öğrenci Notu: Constructor injection field injection'dan daha güvenlidir:
-     * - Final field'lar kullanılabilir (immutability)
-     * - Test edilebilirlik daha iyi
-     * - Circular dependency detection mümkün
      */
     public UserController(UserService userService) {
         this.userService = userService;
@@ -72,13 +52,6 @@ public class UserController {
      * 
      * HTTP Endpoint: GET /user/getUser/{id}
      * Örnek URL: GET /user/getUser/123
-     * 
-     * Öğrenci Notu: @PathVariable anotasyonu URL'deki değişkeni method parametresine bağlar.
-     * Optional handling ile 404 response'u elegant şekilde döndürülür.
-     * 
-     * Response Codes:
-     * - 200 OK: Kullanıcı bulundu ve başarıyla döndürüldü
-     * - 404 NOT FOUND: Belirtilen ID'ye sahip kullanıcı bulunamadı
      */
     @GetMapping("/getUser/{id}")
     public ResponseEntity<User> getUser(@PathVariable int id) {
@@ -93,10 +66,7 @@ public class UserController {
      * @return ResponseEntity<List<User>> - 200 OK ile kullanıcı listesi
      * 
      * HTTP Endpoint: GET /user/getAllUser
-     * 
-     * Öğrenci Notu: Bu endpoint admin paneli için kullanılabilir.
-     * Production'da pagination ve access control eklenmeli.
-     * Response her zaman 200 OK döner çünkü boş liste de valid response'tur.
+     *
      */
     @GetMapping("/getAllUser")
     public ResponseEntity<List<User>> getAllUsers() {
@@ -109,9 +79,6 @@ public class UserController {
      * @return ResponseEntity<List<Doctor>> - 200 OK ile doktor listesi
      * 
      * HTTP Endpoint: GET /user/getAllDoctors
-     * 
-     * Kullanım: Frontend'de doktor seçimi dropdown'ları için.
-     * Hasta randevu alırken hangi doktorları göreceğini belirler.
      */
     @GetMapping("/getAllDoctors")
     public ResponseEntity<List<Doctor>> getAllDoctors() {
@@ -124,10 +91,7 @@ public class UserController {
      * @return ResponseEntity<List<Patient>> - 200 OK ile hasta listesi
      * 
      * HTTP Endpoint: GET /user/getAllPatients
-     * 
-     * Öğrenci Notu: Bu endpoint dikkatli kullanılmalı.
-     * GDPR compliance için hasta listesi erişimi kısıtlanmalı.
-     * Sadece authorized doktor/admin'ler erişebilmeli.
+     *
      */
     @GetMapping("/getAllPatients")
     public ResponseEntity<List<Patient>> getAllPatients() {
@@ -143,16 +107,9 @@ public class UserController {
      * HTTP Endpoint: GET /user/getDoctorsBySpecialty/{specialty}
      * Örnek URL: GET /user/getDoctorsBySpecialty/Cardiology
      * 
-     * Öğrenci Notu: String to Enum conversion yapılır.
-     * valueOf() metodu case-sensitive'dir ve exact match gerektirir.
-     * Geçersiz specialty gönderilirse IllegalArgumentException fırlar.
-     * 
      * Desteklenen specialty değerleri:
      * - Dermatology, Cardiology, Eye, General_Surgery
-     * 
-     * Error Handling:
-     * - 200 OK: Geçerli specialty ve doktor listesi
-     * - 400 BAD REQUEST: Geçersiz specialty değeri
+     *
      */
     @GetMapping("/getDoctorsBySpecialty/{specialty}")
     public ResponseEntity<List<Doctor>> getDoctorsBySpecialty(@PathVariable String specialty) {
@@ -175,10 +132,7 @@ public class UserController {
      * 
      * HTTP Endpoint: PUT /user/update/{id}
      * Request Body: JSON formatında User objesi
-     * 
-     * Öğrenci Notu: PUT metodu complete resource update için kullanılır.
-     * Partial update için PATCH kullanılması daha doğru olurdu.
-     * @RequestBody anotasyonu JSON'u Java object'e deserialize eder.
+     *
      */
     @PutMapping("/update/{id}")
     public ResponseEntity<User> updateUser(@PathVariable int id, @RequestBody User updatedUser) {
@@ -199,9 +153,6 @@ public class UserController {
      * 
      * HTTP Endpoint: POST /user/register
      * Request Body: {"email": "user@example.com", "password": "123456", "role": "PATIENT"}
-     * 
-     * Öğrenci Notu: Bu generic kayıt metodudur. Doktor ve hasta kayıtları için
-     * özelleştirilmiş endpoint'ler (registerDoctor, registerPatient) daha kullanışlıdır.
      */
     @PostMapping("/register")
     public ResponseEntity<User> register(@RequestBody User user) {
@@ -230,10 +181,7 @@ public class UserController {
      *   "phoneNo": "+905551234567",
      *   "specialty": "Cardiology"
      * }
-     * 
-     * Öğrenci Notu: Map<String, Object> kullanarak flexible JSON parsing yapılır.
-     * String to LocalDate ve String to Enum conversion'ları manuel yapılır.
-     * Bu yaklaşım DTO class'ları kullanmaktan daha basit ancak daha az type-safe.
+     *
      */
     @PostMapping("/registerDoctor")
     public ResponseEntity<Doctor> registerDoctor(@RequestBody Map<String, Object> requestData) {
@@ -276,9 +224,7 @@ public class UserController {
      *   "birthDate": "1995-03-20",
      *   "phoneNo": "+905559876543"
      * }
-     * 
-     * Öğrenci Notu: Doktor kaydına benzer ancak specialty field'ı yok.
-     * Role otomatik olarak PATIENT atanır.
+     *
      */
     @PostMapping("/registerPatient")
     public ResponseEntity<Patient> registerPatient(@RequestBody Map<String, Object> requestData) {
@@ -310,14 +256,7 @@ public class UserController {
      * 
      * HTTP Endpoint: POST /user/login
      * Request Body: {"email": "user@example.com", "password": "userpassword"}
-     * 
-     * Öğrenci Notu: Authentication başarılıysa User object döndürülür.
-     * Production'da JWT token döndürülmesi daha güvenli olurdu.
-     * Session management için UserSessionService kullanılabilir.
-     * 
-     * Response Codes:
-     * - 200 OK: Giriş başarılı, user bilgileri döndürüldü
-     * - 401 UNAUTHORIZED: Email bulunamadı veya şifre yanlış
+     *
      */
     @PostMapping("/login")
     public ResponseEntity<User> login(@RequestBody User user) {
@@ -337,12 +276,7 @@ public class UserController {
      * @return ResponseEntity<String> - 200 OK (başarıyla silindi) veya 404 Not Found (bulunamadı)
      * 
      * HTTP Endpoint: DELETE /user/delete/{id}
-     * 
-     * Öğrenci Notu: Hard delete yapılır. Production'da soft delete tercih edilir.
-     * CASCADE DELETE kuralları dikkatli tasarlanmalı (user silinince randevuları ne olacak?).
-     * 
-     * Güvenlik: Admin yetkisi gerektirebilir.
-     * Audit log: Kim, ne zaman, hangi kullanıcıyı sildi kaydı tutulmalı.
+     *
      */
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<String> deleteUser(@PathVariable int id) {

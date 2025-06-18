@@ -213,10 +213,6 @@ public class UserService {
      * @param phoneNo Telefon numarası
      * @param specialty Uzmanlık alanı
      * @return Doctor - Kaydedilmiş doktor nesnesi
-     * 
-     * Öğrenci Notu: Bu metod inheritance kullanır.
-     * Doctor extends User olduğu için hem User hem Doctor field'ları doldurulur.
-     * availability varsayılan olarak true yapılır (yeni doktor aktif).
      */
     public Doctor registerDoctor(String email, String password, String name, String surname, 
                                 LocalDate birthDate, String phoneNo, Doctor.Specialty specialty) {
@@ -255,10 +251,6 @@ public class UserService {
      * @param birthDate Doğum tarihi
      * @param phoneNo Telefon numarası
      * @return Patient - Kaydedilmiş hasta nesnesi
-     * 
-     * Öğrenci Notu: Doctor registration'a benzer ancak daha basit.
-     * Patient'ta specialty ve availability field'ları yok.
-     * Role otomatik olarak PATIENT atanır.
      */
     public Patient registerPatient(String email, String password, String name, String surname,
                                   LocalDate birthDate, String phoneNo) {
@@ -291,10 +283,6 @@ public class UserService {
      * @param email Giriş yapacak kullanıcının e-postası
      * @param password Düz metin şifre
      * @return User - Giriş yapmış kullanıcı nesnesi
-     * 
-     * Öğrenci Notu: Authentication işlemi iki adımlı:
-     * 1. Email ile kullanıcı bulma (identification)
-     * 2. Şifre doğrulama (authentication)
      * 
      * BCrypt.matches() metodu plain text şifreyi hash ile karşılaştırır.
      * Hash'i decode etmez, aynı algoritma ile tekrar hash'leyip karşılaştırır.

@@ -17,8 +17,7 @@ import java.time.LocalDateTime;
  * İlişkiler (Relationships):
  * - Doctor ile Many-to-One ilişki (Bir doktorun birçok randevusu olabilir)
  * - Patient ile Many-to-One ilişki (Bir hastanın birçok randevusu olabilir)
- * 
- * Öğrenci Notu: Bu sınıf entity'ler arası ilişkilerin nasıl kurulduğunu gösterir.
+ *
  * @ManyToOne anotasyonu ile foreign key ilişkileri tanımlanır.
  */
 @Getter // Lombok: Tüm field'lar için getter metodları oluşturur
@@ -43,10 +42,7 @@ public class Appointment {
      * Randevunun Atandığı Doktor
      * 
      * @ManyToOne - Çoka-Bir ilişki (Bir doktorun birçok randevusu olabilir)
-     * 
-     * Öğrenci Notu: JPA otomatik olarak foreign key oluşturur.
-     * Veritabanında 'doctor_user_id' sütunu olarak saklanır.
-     * Lazy loading varsayılan olarak açıktır (performans için).
+     *
      */
     @ManyToOne
     private Doctor doctor;
@@ -68,9 +64,7 @@ public class Appointment {
      * - PENDING: Beklemede (henüz onaylanmamış)
      * - CONFIRMED: Onaylanmış (kesin randevu)
      * - CANCELLED: İptal edilmiş
-     * 
-     * Öğrenci Notu: Enum kullanarak randevu durumlarını kontrol altında tutarız.
-     * Bu, geçersiz durumların girilmesini önler.
+     *
      */
     public enum AppointmentStatus {
         PENDING, CONFIRMED, CANCELLED
@@ -90,10 +84,7 @@ public class Appointment {
      * Randevu Tarih ve Saati
      * 
      * LocalDateTime tipinde saklanır - hem tarih hem saat bilgisi içerir.
-     * 
-     * Öğrenci Notu: LocalDateTime immutable'dır ve thread-safe'dir.
-     * Format: YYYY-MM-DDTHH:MM:SS (ISO 8601 standardı)
-     * Örnek: 2024-01-15T14:30:00 (15 Ocak 2024, 14:30)
+     *
      */
     private LocalDateTime appointmentDateTime;
 
@@ -102,9 +93,6 @@ public class Appointment {
      * 
      * Doktorun randevu ile ilgili yazdığı not.
      * Tanı, tedavi önerileri veya genel notlar içerebilir.
-     * 
-     * String tipinde - uzun metinler içerebilir.
-     * Veritabanında TEXT sütunu olarak saklanır.
      */
     private String doctorNote;
 

@@ -13,9 +13,6 @@ import org.springframework.security.web.SecurityFilterChain;
  * 
  * Bu sınıf uygulamanın güvenlik ayarlarını yapılandırır.
  * @Configuration anotasyonu ile Spring'e bu sınıfın yapılandırma sınıfı olduğunu belirtiriz.
- * 
- * Öğrenci Notu: Spring Security varsayılan olarak tüm endpoint'leri korur.
- * Bu sınıfta hangi endpoint'lerin açık olacağını ve güvenlik kurallarını belirleriz.
  */
 @Configuration
 public class SecurityConfig {
@@ -24,10 +21,6 @@ public class SecurityConfig {
      * Şifre Encoder Bean Tanımı
      * 
      * @return BCryptPasswordEncoder - Güvenli şifre hashleme algoritması
-     * 
-     * Öğrenci Notu: BCrypt, şifreleri hash'lemek için kullanılan güvenli bir algoritmadır.
-     * Salt ekleme ve adaptif hashing özelliklerine sahiptir.
-     * Şifreler veritabanında asla düz metin olarak saklanmamalıdır!
      * 
      * @Bean anotasyonu ile Spring Container'a bu metodun bir bean döndürdüğünü belirtiriz.
      */
@@ -42,11 +35,7 @@ public class SecurityConfig {
      * @param httpSecurity HTTP güvenlik yapılandırma nesnesi
      * @return SecurityFilterChain - Yapılandırılmış güvenlik filter zinciri
      * @throws Exception Konfigürasyon hatası durumunda
-     * 
-     * Öğrenci Notu: Bu metod HTTP güvenlik kurallarını belirler.
-     * - CSRF korumasını devre dışı bırakıyoruz (REST API için gerekli)
-     * - Tüm isteklere izin veriyoruz (.anyRequest().permitAll())
-     * 
+     *
      * Güvenlik Notu: Gerçek projede authentication ve authorization eklenmelidir!
      */
     @Bean

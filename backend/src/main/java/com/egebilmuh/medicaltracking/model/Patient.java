@@ -14,10 +14,6 @@ import java.time.LocalDate;
  * Bu sınıf User sınıfından miras alır ve hastalara özel bilgileri içerir.
  * Veritabanında 'patient' tablosunu oluşturur ve 'user' tablosu ile JOIN edilir.
  * 
- * Öğrenci Notu: Patient ve Doctor sınıfları benzer yapıdadır ancak farklı
- * iş mantıkları içerebilir. Patient'ta specialty field'ı yoktur, 
- * çünkü hastalar uzmanlık alanına sahip değildir.
- * 
  * Kalıtım Yapısı:
  * User (parent) -> Patient (child)
  * - User'dan gelen: userId, email, password, role
@@ -32,42 +28,21 @@ public class Patient extends User {
     
     /**
      * Hastanın Adı
-     * 
-     * Kişisel bilgi olarak saklanır.
-     * Randevu listelerinde ve hasta kayıtlarında görüntülenir.
      */
     private String name;
     
     /**
      * Hastanın Soyadı
-     * 
-     * Ad ile birlikte hastanın tam kimliğini oluşturur.
-     * Veritabanında ayrı field olarak tutulur.
      */
     private String surname;
     
     /**
      * Hastanın Doğum Tarihi
-     * 
-     * LocalDate tipinde saklanır.
-     * Yaş hesaplama ve kimlik doğrulama için kullanılabilir.
-     * 
-     * Öğrenci Notu: LocalDate immutable'dır (değiştirilemez).
-     * Thread-safe'dir ve time zone problemleri yaşanmaz.
-     * Format: YYYY-MM-DD (ISO 8601 standardı)
      */
     private LocalDate birthDate;
     
     /**
      * Hastanın Telefon Numarası
-     * 
-     * İletişim bilgisi olarak saklanır.
-     * Randevu hatırlatmaları ve acil durumlar için kullanılır.
-     * 
-     * String tipinde tutulur çünkü:
-     * - Matematiksel işlem yapılmaz
-     * - Ülke kodları (+90) içerebilir
-     * - Özel karakterler (-,(),space) içerebilir
      */
     private String phoneNo;
 }

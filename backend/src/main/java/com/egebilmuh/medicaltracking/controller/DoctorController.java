@@ -37,11 +37,6 @@ public class DoctorController {
     
     /**
      * Constructor Injection
-     * 
-     * @param DoctorService Doktor business logic service'i
-     * 
-     * Öğrenci Notu: Variable naming Java convention'ını ihlal ediyor.
-     * 'doctorService' (camelCase) olmalı, 'DoctorService' (PascalCase) değil.
      */
     public DoctorController(DoctorService DoctorService) {
         this.DoctorService = DoctorService;
@@ -55,13 +50,7 @@ public class DoctorController {
      * 
      * HTTP Endpoint: GET /Doctor/getDoctor/{id}
      * Örnek URL: GET /Doctor/getDoctor/123
-     * 
-     * Öğrenci Notu: Bu endpoint UserController'daki getUser'a benzer.
-     * Fark: DoctorService.getDoctor() RuntimeException fırlatır,
-     * Optional döndürmez. Bu yüzden exception handling eksik!
-     * 
-     * Potential Problem: Doktor bulunamazsa 500 Internal Server Error döner,
-     * 404 Not Found dönmesi daha doğru olurdu.
+     *
      */
     @GetMapping("/getDoctor/{id}")
     public ResponseEntity<Doctor> getDoctor(@PathVariable int id) {
@@ -74,15 +63,7 @@ public class DoctorController {
      * 
      * @return ResponseEntity<List<Doctor>> - 200 OK ile doktor listesi
      * 
-     * HTTP Endpoint: GET /Doctor/getAllDoctors
-     * 
-     * Kullanım: Admin paneli veya hasta randevu alma sistemi için.
-     * 
-     * Öğrenci Notu: Bu endpoint UserController'daki getAllDoctors ile aynı işlevi görür.
-     * Code duplication var - bir tanesini kullanmak daha iyi olurdu.
-     * 
-     * Mimari Öneri: Tek bir endpoint kullan, birden fazla yoldan aynı veriye erişim
-     * kafa karışıklığına neden olabilir.
+     * HTTP Endpoint: GET /Doctor/getAllDoctors.
      */
     @GetMapping("/getAllDoctors")
     public ResponseEntity<List<Doctor>> getAllDoctors() {
